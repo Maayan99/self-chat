@@ -4,13 +4,9 @@ import bodyParser from "body-parser"
 import {ConversationHandler} from "./conversation-handler/conversation-handler";
 import {User} from "./classes/user";
 import {IncomingMessage, MessageType} from "./client/classes/incoming-message";
-import {getISTDate} from "./utility/date-utility";
-import * as dbInit from './db/db-initialization'
-import * as dbCustomers from "./db/db-users";
-import {rootNode} from "./conversation-trees/order-details-tree/tree-root";
-import {presentNumberToCustomer} from "./utility/phone-number-utility";
-import {BASE_LINK} from "./utility/link-to-chat-utility";
-import {notifyAdmins} from "./utility/admin-notifs-utility";
+import {getISTDate} from "./utils/date-utility";
+import {notifyAdmins} from "./utils/admin-notifs-utility";
+import {MessageHandler} from "./message-handler/message-handler";
 
 const closeBot = process.env.CLOSE_BOT === 'true';
 
@@ -54,91 +50,12 @@ const date = getISTDate()
 
 client.on("initialized", async () => {
     notifyAdmins("אותחלתי בהצלחה בתאריך " + date.toISOString() + " IST");
-})
-
-async function handleCaseOfNoConvoHandler(message: IncomingMessage, from: string) {
-    // Check that it's not a message trying to make a new order
-    if (closeBot) {
-        client.sendMessage("היי, סגרנו את הבוט באופן זמני לתיקונים. אנא הזמינו ידנית מיואל: " + NITAI_CHAT_LINK, from);
-        return;
-    }
-
-    let customer: User | null = await dbCustomers.getCustomer(from)
-
-    if (customer === null) {
-        dbCustomers.insertCustomer(from)
-        // TODO: Get dbId from insertCustoemr and add it to the customer object
-        customer = new User(from, undefined, undefined)
-        console.log("Got a new customer! " + from)
-    }
-
-    const handler: ConversationHandler = new ConversationHandler(rootNode, customer, client)
-    await handler.startConversation()
-
-    notifyAdmins(`התחלתי שיחה חדשה עם ${presentNumberToCustomer(from)}`)
-}
+});
 
 
-async function handleCaseOfConvoHandler(message: IncomingMessage, from: string, foundConversationHandler: ConversationHandler) {
-    if (message.body === 'בטל') {
-        foundConversationHandler.deleteConvo();
-    } else if (message.body === 'משלוח') {
-        foundConversationHandler.deleteConvo();
-        let customer: User | undefined | null = customers.find(customer => customer.phone === from)
+const messageHandler = new MessageHandler();
 
-        if (typeof customer === 'undefined') {
-            customer = await dbCustomers.getCustomer(from)
-
-            if (customer === null) {
-                dbCustomers.insertCustomer(from)
-                customer = new User(from, undefined, undefined)
-                console.log("Got a new customer! " + from)
-            }
-        }
-
-        const handler: ConversationHandler = new ConversationHandler(rootNode, customer, client)
-        await handler.startConversation()
-
-        notifyAdmins(`התחלתי מחדש שיחה עם הלקוח ${presentNumberToCustomer(message.from)}`)
-    }
-}
-
-
-async function handleMessageReceivedAndNewTreesUtil(message: IncomingMessage) {
-    const from: string = message.from;
-    if (admins.indexOf(from) !== -1) {
-        if (message.body === 'אתחול יויואיידי') {
-            dbInit.startupUUIDExtention();
-            return;
-        }
-
-        if (message.body === 'אתחול דאטהבייס טייבלס') {
-            dbInit.createTables();
-            return;
-        }
-
-        if (message.body === 'דרופ דרופ דרופ') {
-            dbInit.deleteTables();
-            return;
-        }
-    }
-
-    // Get the convo handler
-    const foundConversationHandler = conversationHandlers.find((handler) => {
-        return handler.getConvoPartner() === from
-    })
-
-    // If there is no convo handler
-    if (foundConversationHandler === undefined) {
-        return await handleCaseOfNoConvoHandler(message, from)
-    } else {
-        // If there is a convo handler
-        return await handleCaseOfConvoHandler(message, from, foundConversationHandler)
-    }
-}
-
-
-client.on('message-received', handleMessageReceivedAndNewTreesUtil)
+client.on('message-received', (message) => messageHandler.handleReceivedMessage(message));
 
 const app = express();
 
@@ -209,7 +126,6 @@ app.listen(process.env.PORT || 1337, () => {
 
 
 
-
 // Graceful Shutdown
 process.on('SIGTERM', beforeShutdown);
 process.on('SIGINT', beforeShutdown);
@@ -221,6 +137,8 @@ function beforeShutdown() {
 }
 
 export {
+    client,
+    admins
 }
 
 
