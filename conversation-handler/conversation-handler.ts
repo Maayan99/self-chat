@@ -3,31 +3,16 @@ import {Client, IndexedListener} from "../client/client";
 import {AnswerHandler, ConvoNode} from "./classes/convo-node"
 import {ConvoVars} from "./classes/convo-vars";
 import {IncomingMessage} from "../client/classes/incoming-message";
-import {conversationHandlers, meshulamClient, YOEL_CHAT_LINK} from "../main";
+import {conversationHandlers} from "../main";
 import {OutboundMessage} from "../client/classes/outbound-message";
-import {Address} from "../classes/address";
-import {getCustomersAddress} from "../db/db-addresses";
-import {
-    ADDRESS_OBJECT_VAR,
-    ADDRESS_VAR,
-    CUSTOMER_VAR,
-    FROM_VAR,
-    ORDER_VAR,
-    ORIGIN_ADDRESS_CONTACT_VAR
-} from '../conversation-trees/order-details-tree/convo-var-names'
-import {Order} from "../classes/order/order";
-import {OrderFactory} from "../classes/order/order-factory";
-import {formatPhoneNumber, presentNumberToCustomer} from "../utility/phone-number-utility";
 import {ChatPartner} from "../classes/chat-partner";
-import {notifyAdminsError} from "../utility/admin-notifs-utility";
-
+import {notifyAdminsError} from "../utils/admin-notifs-utility";
+import {presentNumberToCustomer} from "../utils/phone-number-utility";
 
 const OPEN: string = "open"
 const BUTTONS: string = "buttons"
 const LIST: string = "list"
 const MINUTES_OF_INACTIVITY: number = 60
-
-export type AddOrder = ConversationHandler['addOrder']
 
 
 /**
@@ -45,8 +30,6 @@ export class ConversationHandler {
     private inactivityTimeoutFuncId: NodeJS.Timeout | undefined;
     private currentListener: IndexedListener | undefined;
 
-    private orders: Order[] = []
-
     /**
      * Creates a new ConversationHandler instance.
      * @param originNode The initial node of the conversation tree.
@@ -63,9 +46,8 @@ export class ConversationHandler {
         this.to = chatPartner.phone
         this.client = client
         this.convoVars = new ConvoVars()
-        this.convoVars.append(FROM_VAR, this.to)
-        this.convoVars.append(ORIGIN_ADDRESS_CONTACT_VAR, this.to)
-        this.convoVars.append(CUSTOMER_VAR, chatPartner)
+        // this.convoVars.append(FROM_VAR, this.to)
+        // this.convoVars.append(USER_VAR, chatPartner)
 
         if (startingConvoVars) {
             for (const key in startingConvoVars) {
@@ -84,12 +66,6 @@ export class ConversationHandler {
      * Starts the conversation by handling the origin node.
      */
     async startConversation() {
-        if (this.chatPartner instanceof User) {
-            // Get customer's address
-            const address: Address | null = await getCustomersAddress(this.to)
-            this.convoVars.append(ADDRESS_VAR, address?.formattedAddress)
-            this.convoVars.append(ADDRESS_OBJECT_VAR, address)
-        }
         this.handleNode(this.originNode)
     }
 
@@ -138,8 +114,6 @@ export class ConversationHandler {
         // Delete this convo handler
         conversationHandlers.splice(conversationHandlers.indexOf(this), 1)
 
-        this.deleteOrders()
-
         console.error("Deleting conversation! ")
         console.log("Conversations left standing: " + conversationHandlers.length)
     }
@@ -163,7 +137,7 @@ export class ConversationHandler {
                     return;
                 }
             } else {
-                const handlerResult: ConvoNode | null = await handler(message, this.convoVars.read.bind(this.convoVars), this.convoVars.append.bind(this.convoVars), this.addOrder.bind(this))
+                const handlerResult: ConvoNode | null = await handler(message, this.convoVars.read.bind(this.convoVars), this.convoVars.append.bind(this.convoVars))
                 if (handlerResult !== null) {
                     this.curNode = handlerResult;
                 } else {
@@ -255,27 +229,5 @@ export class ConversationHandler {
         }
 
         await this.useHandler(handler, triggerMessage)
-    }
-
-    addOrder() {
-        let order;
-        try {
-             order = OrderFactory.createFromConvo(this.convoVars.read.bind(this.convoVars))
-        } catch (e) {
-            notifyAdminsError("נכשלתי במהלך יצירת אובייקט הזמנה ללקוח " + formatPhoneNumber(this.chatPartner.phone) + ".\n\n התקבלה שגיאה:\n" + e);
-            this.client.sendMessage("נכשלתי במהלך יצירת ההזמנה, אנא נסו שוב או צרו קשר עם יואל להזמנה ידנית בלינק הבא: " + YOEL_CHAT_LINK, this.chatPartner.phone);
-            this.deleteConvo();
-            return false;
-        }
-        this.convoVars.append(ORDER_VAR, order)
-        this.orders.push(order)
-        return true;
-    }
-
-    deleteOrders() {
-        for (const order of this.orders) {
-         //   unpaidOrders.splice(unpaidOrders.indexOf(order), 1)
-            meshulamClient.terminateOrderProcesses(order);
-        }
     }
 }

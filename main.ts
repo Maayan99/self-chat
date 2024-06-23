@@ -33,16 +33,13 @@ const client: Client = new Client(phoneNumberId, token)
 
 
 const conversationHandlers: ConversationHandler[] = []
-const customers: User[] = []
+const users: User[] = []
 
 const admin1Number: string | undefined = process.env.ADMIN_1
 
 if (!admin1Number) {
     throw new Error("Missing env var Admin1Number");
 }
-
-const NITAI_CHAT_LINK: string = BASE_LINK + admin1Number;
-
 
 const admins: string[] = [admin1Number];
 
@@ -138,7 +135,9 @@ function beforeShutdown() {
 
 export {
     client,
-    admins
+    admins,
+    conversationHandlers,
+    users
 }
 
 

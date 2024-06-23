@@ -4,7 +4,6 @@ import {IncomingMessage} from "../../client/classes/incoming-message";
 import {LocationRequest} from "../../client/classes/location-request";
 import {OutboundMessage} from "../../client/classes/outbound-message";
 import {List, Section} from "../../client/classes/list";
-import {AddOrder} from "../conversation-handler";
 
 
 type ButtonMessageGenerator = {
@@ -38,14 +37,8 @@ export type AnswerHandler =
     (((input: IncomingMessage | undefined, read: VarRead, append: VarAppend) => ConvoNode) |
         ((input: IncomingMessage | undefined, read: VarRead, append: VarAppend) => Promise<ConvoNode>))
     |
-    (((input: IncomingMessage | undefined, read: VarRead, append: VarAppend, addOrder: AddOrder) => ConvoNode) |
-        ((input: IncomingMessage | undefined, read: VarRead, append: VarAppend, addOrder: AddOrder) => Promise<ConvoNode>))
-    |
     (((input: IncomingMessage | undefined, read: VarRead, append: VarAppend) => null) |
         ((input: IncomingMessage | undefined, read: VarRead, append: VarAppend) => Promise<null>))
-    |
-    (((input: IncomingMessage | undefined, read: VarRead, append: VarAppend, addOrder: AddOrder) => null) |
-        ((input: IncomingMessage | undefined, read: VarRead, append: VarAppend, addOrder: AddOrder) => Promise<null>))
 
 
 // Open stands for "open question" i.e. a text message
