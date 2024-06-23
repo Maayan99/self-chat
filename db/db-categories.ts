@@ -2,6 +2,7 @@
 import { Category } from '../classes/category';
 import { User } from '../classes/user';
 import { query } from './db';
+import {Field} from "../classes/field";
 
 export class dbCategories {
     static async getDbCategory(id: string): Promise<Category | null> {
@@ -24,10 +25,10 @@ export class dbCategories {
             [category.categoryName, category.dbId]);
     }
 
-    static async getAllDbCategories(user: User): Promise<Category[]> {
-        const userId = await user.getDbId();
-        const response = await query('SELECT * FROM categories WHERE user_id = $1', [userId]);
 
-        return response.rows.map((row: any) => new Category(row.category_name, row.user_id, row.category_id));
+    static async getFieldsOfCategory(categoryId: string): Promise<Field[]> {
+        const response = await query('SELECT * FROM fields WHERE category_id = $1', [categoryId]);
+
+        return response.rows.map((row: any) => new Field(row.field_name, row.category_id, row.field_id));
     }
 }

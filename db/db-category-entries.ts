@@ -22,4 +22,10 @@ export class dbCategoryEntries {
         await query('UPDATE category_entries SET category_id = $1 WHERE entry_id = $2',
             [entry.categoryId, entry.dbId]);
     }
+
+    static async getAllEntriesForCategory(categoryId: string): Promise<CategoryEntry[]> {
+        const response = await query('SELECT * FROM category_entries WHERE category_id = $1', [categoryId]);
+
+        return response.rows.map((row: any) => new CategoryEntry(row.category_id, row.created_at, row.entry_id));
+    }
 }

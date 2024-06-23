@@ -22,4 +22,10 @@ export class dbEntryFields {
         await query('UPDATE entry_fields SET field_value = $1 WHERE entry_field_id = $2',
             [entryField.fieldValue, entryField.dbId]);
     }
+
+    static async getAllFieldsForEntry(entryId: string): Promise<EntryField[]> {
+        const response = await query('SELECT * FROM entry_fields WHERE entry_id = $1', [entryId]);
+
+        return response.rows.map((row: any) => new EntryField(row.entry_id, row.field_id, row.field_value, row.entry_field_id));
+    }
 }
