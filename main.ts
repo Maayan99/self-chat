@@ -4,27 +4,11 @@ import bodyParser from "body-parser"
 import {ConversationHandler} from "./conversation-handler/conversation-handler";
 import {Customer} from "./classes/customer";
 import {IncomingMessage, MessageType} from "./client/classes/incoming-message";
-import {Order, OrderStatus} from "./classes/order/order";
 import {getISTDate} from "./utility/date-utility";
-import {Courier} from "./classes/courier";
 import * as dbInit from './db/db-initialization'
-import * as dbOrders from "./db/db-orders";
 import * as dbCustomers from "./db/db-customers";
-import * as dbCouriers from "./db/db-couriers";
-import {adminRoot} from "./conversation-trees/admin-tree/admin-root";
 import {rootNode} from "./conversation-trees/order-details-tree/tree-root";
 import {presentNumberToCustomer} from "./utility/phone-number-utility";
-import {Admin} from "./classes/admin";
-import {
-    ACTIVE_ORDERS_VAR,
-    ORDER_TO_MANAGE
-} from "./conversation-trees/courier-dashboard-tree/courier-dashboard-convo-vars";
-import {COURIER_VAR} from "./conversation-trees/courier-onboard-new-order-tree/courier-onboarding-convovar-names";
-import {
-    courierDashboardRoot,
-    getNodeForOrderStatusManagement
-} from "./conversation-trees/courier-dashboard-tree/courier-dashboard-root";
-import {ConvoNode} from "./conversation-handler/classes/convo-node";
 import {BASE_LINK} from "./utility/link-to-chat-utility";
 import {notifyAdmins} from "./utility/admin-notifs-utility";
 
@@ -72,82 +56,11 @@ client.on("initialized", async () => {
     notifyAdmins("אותחלתי בהצלחה בתאריך " + date.toISOString() + " IST");
 })
 
-async function handleRequestForOrder(message: string, from: string) {
-    let courier: Courier | undefined = await dbCouriers.getCourierByPhone(from)
-    if (courier === undefined) {
-        const dbId = await dbCouriers.createNewCourier(from)
-        courier = new Courier(from, dbId)
-    }
-
-    const trackingNumber = message.replace('אשמח לפרטים על משלוח', '').trim()
-    const foundOrder: Order | null = paidOrders.find(order => order.getId() === trackingNumber) ||
-        await dbOrders.getOrderById(trackingNumber)
-
-    if (!foundOrder) {
-        client.sendMessage(`לא נמצאה הזמנה עם מספר מעקב ${trackingNumber}`, from)
-    } else if (foundOrder.status !== OrderStatus.Paid) {
-        client.sendMessage(`ההזמנה נמכרה כבר, מתנצלים!`, from)
-    } else {
-        // Add the courier to the queue
-        foundOrder.addToQueue(courier);
-    }
-}
-
-
 async function handleCaseOfNoConvoHandler(message: IncomingMessage, from: string) {
-    // If message is from a courier trying to get a new order
-    if (typeof message.body === 'string' && message.body.startsWith('אשמח לפרטים על משלוח ')) {
-        handleRequestForOrder(message.body, from);
-        return;
-    }
-
     // Check that it's not a message trying to make a new order
-    if (message.body !== 'משלוח') {
-        // Check if the message is from an admin or if it's an admin simulating a courier
-        if (message.body !== 'סימולציית שליח' && admins.indexOf(from) !== -1) {
-            const handler: ConversationHandler = new ConversationHandler(adminRoot, new Admin(from), client);
-            await handler.startConversation();
-            return;
-        }
-
-
-        // Now check if it's a courier that wants to manage their existing orders
-        let courier: Courier | undefined = await dbCouriers.getCourierByPhone(from)
-        if (courier !== undefined) {
-            const activeOrders: Order[] = await courier.getActiveOrders()
-            if (activeOrders && activeOrders.length > 0) {
-                if (activeOrders.length === 1) {   // If there is only one order
-                    const order: Order = activeOrders[0]
-
-                    const statusNode: ConvoNode = getNodeForOrderStatusManagement(order.status)
-
-                    const handler: ConversationHandler = new ConversationHandler(statusNode, courier, client, {
-                        [ORDER_TO_MANAGE]: order,
-                        [COURIER_VAR]: courier
-                    })
-                    await handler.startConversation();
-
-                } else {
-                    const handler: ConversationHandler = new ConversationHandler(courierDashboardRoot, courier, client, {
-                        [ACTIVE_ORDERS_VAR]: activeOrders,
-                        [COURIER_VAR]: courier
-                    })
-
-                    await handler.startConversation();
-                }
-            } else {
-                client.sendMessage('שלום שליח, אין לך כרגע הזמנות פעילות, שים לב בקבוצות - אני מפרסם כל הזמן הזמנות חדשות. רוצה להזמין הזמנה בעצמך? שלח ״משלוח״', from)
-            }
-
-
-            return;
-        }
-    }
-
     if (closeBot) {
         client.sendMessage("היי, סגרנו את הבוט באופן זמני לתיקונים. אנא הזמינו ידנית מיואל: " + NITAI_CHAT_LINK, from);
         return;
-
     }
 
     let customer: Customer | null = await dbCustomers.getCustomer(from)
@@ -167,10 +80,7 @@ async function handleCaseOfNoConvoHandler(message: IncomingMessage, from: string
 
 
 async function handleCaseOfConvoHandler(message: IncomingMessage, from: string, foundConversationHandler: ConversationHandler) {
-    if (typeof message.body === 'string' && message.body.startsWith('אשמח לפרטים על משלוח ')) {
-        foundConversationHandler.deleteConvo();
-        handleRequestForOrder(message.body, from)
-    } else if (message.body === 'בטל') {
+    if (message.body === 'בטל') {
         foundConversationHandler.deleteConvo();
     } else if (message.body === 'משלוח') {
         foundConversationHandler.deleteConvo();
@@ -195,8 +105,6 @@ async function handleCaseOfConvoHandler(message: IncomingMessage, from: string, 
 
 
 async function handleMessageReceivedAndNewTreesUtil(message: IncomingMessage) {
-
-
     const from: string = message.from;
     if (admins.indexOf(from) !== -1) {
         if (message.body === 'אתחול יויואיידי') {
@@ -211,26 +119,6 @@ async function handleMessageReceivedAndNewTreesUtil(message: IncomingMessage) {
 
         if (message.body === 'דרופ דרופ דרופ') {
             dbInit.deleteTables();
-            return;
-        }
-
-        if (typeof message.body === 'string' && message.body.startsWith('ניסוי בינה מלאכותית: ')) {
-            const trimmedMessage: string = message.body.replace('ניסוי בינה מלאכותית: ', "");
-            const customer = await dbCustomers.getCustomer(message.from);
-            if (customer) {
-                const aiResp = await openAiClient.generateOrderDetails(trimmedMessage, customer)
-                if (aiResp) {
-                    const stringResp: string = "הזמנה מסוג: " + aiResp.orderType + "\n\n" + "כתובת איסוף:\n" + aiResp.pickUpAddress?.toString() +
-                        "\n\nכתובת מסירה\n" + aiResp.dropOffAddress?.toString() +
-                        "\n\nתאריך ושעת איסוף:\n" + (aiResp.pickUpDate ? aiResp.pickUpDate?.getDate() + "." + (aiResp.pickUpDate.getMonth() + 1) : "לא הצלחתי לפענח תאריך איסוף") + "\n" + aiResp.pickUpHour
-                        + "\n\nתאריך ושעת מסירה:\n" + (aiResp.dropOffDate ? (aiResp.dropOffDate.getDate() + "." + (aiResp.dropOffDate.getMonth() + 1)) : "לא הצלחתי לפענח תאריך מסירה") + "\n" + aiResp.dropOffHour
-                        + "\n\nהערות נוספות:\n" + aiResp.comments
-
-                    client.sendMessage("חולצו פרטי המשלוח: \n" + stringResp, message.from);
-                } else {
-                    client.sendMessage("לא הצלחתי לייצר פרטי משלוח...", message.from);
-                }
-            }
             return;
         }
     }
@@ -330,11 +218,6 @@ process.on('SIGINT', beforeShutdown);
 function beforeShutdown() {
     console.log("Received kill signal, shutting down gracefully");
     notifyAdmins("☠️☠️☠️בתהליך קריסה/ביצוע אתחול☠️☠️☠️");
-
-    const unadvertisedOrdersStr: string = unadvertisedOrders.map(order => 'הזמנה מס׳ ' + order.getId() + "\n" + ' עם ההודעה הבאה:\n ' + order.generateAdvertMessage() + " \n לתאריך " + order.getDropoffDate().toISOString()).join('\n\n');
-    if (unadvertisedOrders.length > 0) {
-        notifyAdmins(unadvertisedOrdersStr);
-    }
 }
 
 export {
