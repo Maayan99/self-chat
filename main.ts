@@ -2,7 +2,7 @@ import {Client} from "./client/client";
 import express from "express";
 import bodyParser from "body-parser"
 import {ConversationHandler} from "./conversation-handler/conversation-handler";
-import {Customer} from "./classes/customer";
+import {User} from "./classes/user";
 import {IncomingMessage, MessageType} from "./client/classes/incoming-message";
 import {getISTDate} from "./utility/date-utility";
 import * as dbInit from './db/db-initialization'
@@ -37,7 +37,7 @@ const client: Client = new Client(phoneNumberId, token)
 
 
 const conversationHandlers: ConversationHandler[] = []
-const customers: Customer[] = []
+const customers: User[] = []
 
 const admin1Number: string | undefined = process.env.ADMIN_1
 
@@ -63,12 +63,12 @@ async function handleCaseOfNoConvoHandler(message: IncomingMessage, from: string
         return;
     }
 
-    let customer: Customer | null = await dbCustomers.getCustomer(from)
+    let customer: User | null = await dbCustomers.getCustomer(from)
 
     if (customer === null) {
         dbCustomers.insertCustomer(from)
         // TODO: Get dbId from insertCustoemr and add it to the customer object
-        customer = new Customer(from, undefined, undefined)
+        customer = new User(from, undefined, undefined)
         console.log("Got a new customer! " + from)
     }
 
@@ -84,14 +84,14 @@ async function handleCaseOfConvoHandler(message: IncomingMessage, from: string, 
         foundConversationHandler.deleteConvo();
     } else if (message.body === 'משלוח') {
         foundConversationHandler.deleteConvo();
-        let customer: Customer | undefined | null = customers.find(customer => customer.phone === from)
+        let customer: User | undefined | null = customers.find(customer => customer.phone === from)
 
         if (typeof customer === 'undefined') {
             customer = await dbCustomers.getCustomer(from)
 
             if (customer === null) {
                 dbCustomers.insertCustomer(from)
-                customer = new Customer(from, undefined, undefined)
+                customer = new User(from, undefined, undefined)
                 console.log("Got a new customer! " + from)
             }
         }

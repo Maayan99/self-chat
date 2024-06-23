@@ -1,4 +1,4 @@
-import {Customer} from "../classes/customer";
+import {User} from "../classes/user";
 import {Client, IndexedListener} from "../client/client";
 import {AnswerHandler, ConvoNode} from "./classes/convo-node"
 import {ConvoVars} from "./classes/convo-vars";
@@ -84,7 +84,7 @@ export class ConversationHandler {
      * Starts the conversation by handling the origin node.
      */
     async startConversation() {
-        if (this.chatPartner instanceof Customer) {
+        if (this.chatPartner instanceof User) {
             // Get customer's address
             const address: Address | null = await getCustomersAddress(this.to)
             this.convoVars.append(ADDRESS_VAR, address?.formattedAddress)

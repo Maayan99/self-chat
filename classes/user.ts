@@ -8,7 +8,7 @@ import {CompletedOrder} from "./order/completed-order";
 import {getAllCompletedOrdersOfCustomer} from "../db/db-completed-orders";
 import {AddressInDb} from "../db/db-addresses";
 
-export class Customer implements ChatPartner {
+export class User implements ChatPartner {
     phone: string;
     addressId: string | undefined
     address: Address | undefined
@@ -31,7 +31,7 @@ export class Customer implements ChatPartner {
         if (this.dbId) {
             return this.dbId
         } else {
-            const customerInDb: Customer | null = await dbCustomers.getCustomer(this.phone);
+            const customerInDb: User | null = await dbCustomers.getCustomer(this.phone);
             this.dbId = customerInDb?.dbId
 
             if (typeof this.dbId === "undefined") {
@@ -45,7 +45,7 @@ export class Customer implements ChatPartner {
 
     async getName(): Promise<string | undefined> {
         if (!this.name) {
-            const customerInDb: Customer | null = await dbCustomers.getCustomer(this.phone);
+            const customerInDb: User | null = await dbCustomers.getCustomer(this.phone);
             this.name = customerInDb?.name
         }
         return this.name
