@@ -6,7 +6,7 @@ import {User} from "./classes/user";
 import {IncomingMessage, MessageType} from "./client/classes/incoming-message";
 import {getISTDate} from "./utility/date-utility";
 import * as dbInit from './db/db-initialization'
-import * as dbCustomers from "./db/db-customers";
+import * as dbCustomers from "./db/db-users";
 import {rootNode} from "./conversation-trees/order-details-tree/tree-root";
 import {presentNumberToCustomer} from "./utility/phone-number-utility";
 import {BASE_LINK} from "./utility/link-to-chat-utility";
