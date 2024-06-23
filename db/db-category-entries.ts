@@ -3,6 +3,22 @@ import { CategoryEntry } from '../classes/category-entry';
 import { query } from './db';
 
 export class dbCategoryEntries {
+    static async createCategoryEntry(categoryId: string, createdAt: Date): Promise<CategoryEntry | null> {
+        try {
+            const response = await query(
+                'INSERT INTO category_entries (category_id, created_at) VALUES ($1, $2) RETURNING *',
+                [categoryId, createdAt]
+            );
+
+            const row = response.rows[0];
+            return new CategoryEntry(row.entry_id, row.category_id, row.created_at);
+        } catch (error) {
+            console.error('Error creating category entry:', error);
+            return null;
+        }
+    }
+
+
     static async getDbCategoryEntry(id: string): Promise<CategoryEntry | null> {
         const response = await query('SELECT * FROM category_entries WHERE entry_id = $1', [id]);
         const row = response.rows[0];

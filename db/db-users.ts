@@ -25,7 +25,7 @@ export class dbUsers {
         const row = response.rows[0];
 
         if (row) {
-            return new User(row.phone_number, row.name, row.user_id);
+            return new User(row.phone_number, row.user_id);
         } else {
             return null;
         }
@@ -36,7 +36,7 @@ export class dbUsers {
         const row = response.rows[0];
 
         if (row) {
-            return new User(row.phone_number, row.name, row.user_id);
+            return new User(row.phone_number, row.user_id);
         } else {
             return null;
         }
