@@ -5,6 +5,22 @@ import { query } from './db';
 import {Field} from "../classes/field";
 
 export class dbCategories {
+    static async createCategory(categoryName: string, userId: string): Promise<Category | null> {
+        try {
+            const response = await query(
+                'INSERT INTO categories (category_name, user_id) VALUES ($1, $2) RETURNING *',
+                [categoryName, userId]
+            );
+
+            const row = response.rows[0];
+            return new Category(row.category_name, row.user_id, row.category_id);
+        } catch (error) {
+            console.error('Error creating category:', error);
+            return null;
+        }
+    }
+
+
     static async getDbCategory(id: string): Promise<Category | null> {
         const response = await query('SELECT * FROM categories WHERE category_id = $1', [id]);
         const row = response.rows[0];

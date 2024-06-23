@@ -1,23 +1,29 @@
 // user.ts
 import {ChatPartner} from "./chat-partner";
+import {dbUsers} from "../db/db-users";
 
 export class User implements ChatPartner{
     dbId?: string;
-    phoneNumber: string;
-    name?: string;
+    phone: string;
 
-    constructor(phoneNumber: string, name?: string, dbId?: string) {
+    constructor(phoneNumber: string, dbId?: string) {
         this.dbId = dbId;
-        this.phoneNumber = phoneNumber;
-        this.name = name;
+        this.phone = phoneNumber;
     }
 
-    async getDbId(): Promise<string> {
+    async getDbId(): Promise<string | null> {
         if (this.dbId) {
             return this.dbId;
         }
-        const userId = await dbUsers.getUserByPhone(this.phoneNumber);
-        this.dbId = userId;
-        return userId;
+        const userId: User | null = await dbUsers.getUserByPhone(this.phone);
+        if (userId === null) {
+            return null;
+        }
+
+        // TODO: find a better solution for this stupid shit
+        // @ts-ignore
+        const newId: string = userId.dbId;
+        this.dbId = newId;
+        return newId;
     }
 }

@@ -1,5 +1,5 @@
 export interface ChatPartner {
-    dbId: string | undefined;
+    dbId?: string;
     phone: string;
-    getDbId(): Promise<string>;
+    getDbId(): Promise<string | null>;
 }

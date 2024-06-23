@@ -4,6 +4,22 @@ import { query } from './db';
 import {Category} from "../classes/category";
 
 export class dbUsers {
+
+    static async createUser(phoneNumber: string, name: string): Promise<User | null> {
+        try {
+            const response = await query(
+                'INSERT INTO users (phone_number, name) VALUES ($1, $2) RETURNING *',
+                [phoneNumber, name]
+            );
+
+            const row = response.rows[0];
+            return new User(row.phone_number, row.user_id);
+        } catch (error) {
+            console.error('Error creating user:', error);
+            return null;
+        }
+    }
+
     static async getUserByPhone(phone: string): Promise<User | null> {
         const response = await query('SELECT * FROM users WHERE phone_number = $1', [phone]);
         const row = response.rows[0];
