@@ -1,11 +1,25 @@
-export class CategoryEntry {
-    entry_id: string;
-    category_id: string;
-    created_at: Date;
+// entryField.ts
+import {CategoryEntry} from './category-entry';
+import {Field} from './field';
 
-    constructor(entry_id: string, category_id: string, created_at?: Date) {
-        this.entry_id = entry_id;
-        this.category_id = category_id;
-        this.created_at = created_at || new Date();
+export class EntryField {
+    dbId: string;
+    entryId: string;
+    fieldId: string;
+    fieldValue: string;
+    entry?: CategoryEntry;
+    field?: Field;
+
+    constructor(dbId: string, entryId: string, fieldId: string, fieldValue: string, entry?: CategoryEntry, field?: Field) {
+        this.dbId = dbId;
+        this.entryId = entryId;
+        this.fieldId = fieldId;
+        this.fieldValue = fieldValue;
+        this.entry = entry;
+        this.field = field;
+    }
+
+    getDbId(): string {
+        return this.dbId;
     }
 }

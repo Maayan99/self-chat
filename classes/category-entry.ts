@@ -1,11 +1,20 @@
-export class CategoryEntry {
-    entry_id: string;
-    category_id: string;
-    created_at: Date;
+// categoryEntry.ts
+import {Category} from './category';
 
-    constructor(entry_id: string, category_id: string, created_at?: Date) {
-        this.entry_id = entry_id;
-        this.category_id = category_id;
-        this.created_at = created_at || new Date();
+export class CategoryEntry {
+    dbId: string;
+    categoryId: string;
+    createdAt: Date;
+    category?: Category;
+
+    constructor(dbId: string, categoryId: string, createdAt?: Date, category?: Category) {
+        this.dbId = dbId;
+        this.categoryId = categoryId;
+        this.createdAt = createdAt || new Date();
+        this.category = category;
+    }
+
+    getDbId(): string {
+        return this.dbId;
     }
 }

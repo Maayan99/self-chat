@@ -1,11 +1,20 @@
-export class Field {
-    field_id: string;
-    category_id: string;
-    field_name: string;
+// field.ts
+import { Category } from './category';
 
-    constructor(field_id: string, category_id: string, field_name: string) {
-        this.field_id = field_id;
-        this.category_id = category_id;
-        this.field_name = field_name;
+export class Field {
+    dbId: string;
+    categoryId: string;
+    fieldName: string;
+    category?: Category;
+
+    constructor(fieldName: string, categoryId: string, dbId: string, category?: Category) {
+        this.dbId = dbId;
+        this.categoryId = categoryId;
+        this.fieldName = fieldName;
+        this.category = category;
+    }
+
+    getDbId(): string {
+        return this.dbId;
     }
 }

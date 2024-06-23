@@ -1,13 +1,22 @@
-export class Note {
-    note_id: string;
-    user_id: string;
-    note_text: string;
-    created_at: Date;
+// note.ts
+import {User} from './user';
 
-    constructor(note_id: string, user_id: string, note_text: string, created_at?: Date) {
-        this.note_id = note_id;
-        this.user_id = user_id;
-        this.note_text = note_text;
-        this.created_at = created_at || new Date();
+export class Note {
+    dbId: string;
+    userId: string;
+    noteText: string;
+    createdAt: Date;
+    user?: User;
+
+    constructor(dbId: string, noteText: string, userId: string, createdAt?: Date, user?: User) {
+        this.dbId = dbId;
+        this.userId = userId;
+        this.noteText = noteText;
+        this.createdAt = createdAt || new Date();
+        this.user = user;
+    }
+
+    getDbId(): string {
+        return this.dbId;
     }
 }

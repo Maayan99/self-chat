@@ -1,17 +1,26 @@
-export class Contact {
-    contact_id: string;
-    user_id: string;
-    contact_name?: string;
-    phone_number?: string;
-    email?: string;
-    created_at: Date;
+// contact.ts
+import { User } from './user';
 
-    constructor(contact_id: string, user_id: string, contact_name?: string, phone_number?: string, email?: string, created_at?: Date) {
-        this.contact_id = contact_id;
-        this.user_id = user_id;
-        this.contact_name = contact_name;
-        this.phone_number = phone_number;
+export class Contact {
+    dbId: string;
+    userId: string;
+    contactName?: string;
+    phoneNumber?: string;
+    email?: string;
+    createdAt: Date;
+    user?: User;
+
+    constructor(dbId: string, userId: string, contactName?: string, phoneNumber?: string, email?: string, createdAt?: Date, user?: User) {
+        this.dbId = dbId;
+        this.userId = userId;
+        this.contactName = contactName;
+        this.phoneNumber = phoneNumber;
         this.email = email;
-        this.created_at = created_at || new Date();
+        this.createdAt = createdAt || new Date();
+        this.user = user;
+    }
+
+    getDbId(): string {
+            return this.dbId;
     }
 }

@@ -1,9 +1,6 @@
 import {formatDateForDb, formatDateWithoutYear, getISTDate} from "../utility/date-utility";
 import {query} from "./db";
-import {CompletedDbOrder} from "./db-completed-orders";
 import * as console from "console";
-import {CompletedOrder} from "../classes/order/completed-order";
-import {OrderFactory} from "../classes/order/order-factory";
 
 enum Timeframe {
     SinceStart,

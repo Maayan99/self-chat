@@ -1,11 +1,20 @@
-export class Category {
-    category_id: string;
-    user_id: string;
-    category_name: string;
+// category.ts
+import { User } from './user';
 
-    constructor(category_id: string, user_id: string, category_name: string) {
-        this.category_id = category_id;
-        this.user_id = user_id;
-        this.category_name = category_name;
+export class Category {
+    dbId: string;
+    userId: string;
+    categoryName: string;
+    user?: User;
+
+    constructor(categoryName: string, userId: string, dbId: string, user?: User) {
+        this.dbId = dbId;
+        this.userId = userId;
+        this.categoryName = categoryName;
+        this.user = user;
+    }
+
+    getDbId(): string {
+        return this.dbId;
     }
 }
