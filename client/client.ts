@@ -5,8 +5,6 @@ import * as fs from "fs";
 import FormData from 'form-data'
 import {volumeMountPath} from "../main";
 import {response} from "express";
-import {FineTuningJob} from "openai/resources/fine-tuning";
-import Error = FineTuningJob.Error;
 import * as console from "console";
 
 

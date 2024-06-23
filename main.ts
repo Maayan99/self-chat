@@ -137,7 +137,8 @@ export {
     client,
     admins,
     conversationHandlers,
-    users
+    users,
+    volumeMountPath,
 }
 
 
