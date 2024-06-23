@@ -1,14 +1,20 @@
 import {query} from "./db";
 
 const deleteTables = async () => {
-    await query('DROP TABLE if exists customers CASCADE')
-    await query('DROP TABLE if exists addresses CASCADE')
-    await query('DROP TABLE if exists reviews CASCADE')
-    await query('DROP TABLE if exists couriers CASCADE')
-    await query('DROP TABLE if exists orders CASCADE')
-    await query('DROP TABLE if exists completed_orders CASCADE')
-    await query('DROP TABLE if exists courier_groups CASCADE')
-    await query('DROP TABLE if exists ad_timers CASCADE')
+    try {
+        await query('DROP TABLE IF EXISTS entry_fields CASCADE');
+        await query('DROP TABLE IF EXISTS category_entries CASCADE');
+        await query('DROP TABLE IF EXISTS notes CASCADE');
+        await query('DROP TABLE IF EXISTS contacts CASCADE');
+        await query('DROP TABLE IF EXISTS links CASCADE');
+        await query('DROP TABLE IF EXISTS fields CASCADE');
+        await query('DROP TABLE IF EXISTS categories CASCADE');
+        await query('DROP TABLE IF EXISTS users CASCADE');
+
+        console.log('Tables deleted successfully');
+    } catch (err) {
+        console.error('Error deleting tables', err);
+    }
 }
 
 
