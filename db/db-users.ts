@@ -46,8 +46,8 @@ export class dbUsers {
         await query('DELETE FROM users WHERE user_id = $1', [id]);
     }
 
-    static async getAllCategoriesForUser(userId: string): Promise<Category[]> {
-        const response = await query('SELECT * FROM categories WHERE user_id = $1', [userId]);
+    static async getAllNotesForUser(userId: string): Promise<Category[]> {
+        const response = await query('SELECT * FROM notes WHERE user_id = $1', [userId]);
 
         return response.rows.map((row: any) => new Category(row.category_name, row.user_id, row.category_id));
     }
