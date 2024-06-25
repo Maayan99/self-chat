@@ -51,9 +51,7 @@ const createTables = async (): Promise<void> => {
         await query(`CREATE TABLE IF NOT EXISTS contacts (
       contact_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
       user_id UUID NOT NULL REFERENCES users(user_id),
-      contact_name VARCHAR(100),
       phone_number VARCHAR(15),
-      email VARCHAR(100),
       tags TEXT[],
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`);

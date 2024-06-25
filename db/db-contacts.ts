@@ -1,8 +1,17 @@
 // dbContacts.ts
 import { Contact } from '../classes/contact';
-import { query } from './db';
+import {dateFromDb, query} from './db';
+import {Link} from "../classes/link";
 
 export class dbContacts {
+    static contactObjFromDb(row: { [field: string]: any }): Contact {
+        if (typeof (row.contact_id) !== "string"
+            || typeof (row.user_id) !== "string"
+            || typeof (row.phone_number) !== "string") {
+            throw new Error("Trying to create link obj from a db row with missing data");
+        }
+        return new Contact(row.contact_id, row.user_id, row.phone_number, dateFromDb(row.created_at), row.tags);
+    }
 
     static async createContact(userId: string, contactName: string, phoneNumber: string, email: string, createdAt: Date): Promise<Contact | null> {
         try {
@@ -12,7 +21,7 @@ export class dbContacts {
             );
 
             const row = response.rows[0];
-            return new Contact(row.contact_id, row.user_id, row.contact_name, row.phone_number, row.email, row.created_at);
+            return this.contactObjFromDb(row);
         } catch (error) {
             console.error('Error creating contact:', error);
             return null;
@@ -24,7 +33,7 @@ export class dbContacts {
         const row = response.rows[0];
 
         if (row) {
-            return new Contact(row.user_id, row.contact_name, row.phone_number, row.email, row.created_at, row.contact_id);
+            return this.contactObjFromDb(row);
         } else {
             return null;
         }
@@ -35,7 +44,7 @@ export class dbContacts {
     }
 
     static async updateDbContact(contact: Contact): Promise<void> {
-        await query('UPDATE contacts SET contact_name = $1, phone_number = $2, email = $3 WHERE contact_id = $4',
-            [contact.contactName, contact.phoneNumber, contact.email, contact.dbId]);
+        await query('UPDATE contacts SET phone_number = $1 WHERE contact_id = $2',
+            [contact.phoneNumber, contact.getDbId()]);
     }
 }
