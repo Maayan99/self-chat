@@ -4,16 +4,20 @@ import {User} from './user';
 export class Note {
     dbId: string;
     userId: string;
+    tags: string[];
     noteText: string;
     createdAt: Date;
-    user?: User;
 
-    constructor(dbId: string, noteText: string, userId: string, createdAt?: Date, user?: User) {
+    constructor(dbId: string, noteText: string, userId: string, createdAt?: Date, tags?: string[]) {
         this.dbId = dbId;
         this.userId = userId;
         this.noteText = noteText;
         this.createdAt = createdAt || new Date();
-        this.user = user;
+        if (tags) {
+            this.tags = tags;
+        } else {
+            this.tags = [];
+        }
     }
 
     getDbId(): string {

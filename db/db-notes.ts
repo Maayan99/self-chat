@@ -1,6 +1,16 @@
 // dbNotes.ts
-import { Note } from '../classes/note';
-import { query } from './db';
+import {Note} from '../classes/note';
+import {dateFromDb, query} from './db';
+
+
+export function noteObjFromDb(row: { [field: string]: any }): Note {
+    if (typeof (row.note_id) !== "string"
+        || typeof (row.note_text) !== "string"
+        || typeof (row.user_id) !== "string") {
+        throw new Error("Trying to create note obj from a db row with missing data");
+    }
+    return new Note(row.note_id, row.note_text, row.user_id, dateFromDb(row.created_at), row.tags);
+}
 
 export class dbNotes {
     static async createNote(noteText: string, userId: string, createdAt: Date): Promise<Note | null> {
@@ -11,7 +21,7 @@ export class dbNotes {
             );
 
             const row = response.rows[0];
-            return new Note(row.note_id, row.note_text, row.user_id, row.created_at);
+            return noteObjFromDb(row);
         } catch (error) {
             console.error('Error creating note:', error);
             return null;
@@ -23,7 +33,7 @@ export class dbNotes {
         const row = response.rows[0];
 
         if (row) {
-            return new Note(row.note_text, row.user_id, row.created_at, row.note_id);
+            return noteObjFromDb(row);
         } else {
             return null;
         }

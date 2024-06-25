@@ -1,5 +1,13 @@
 import {Pool, PoolClient, QueryResult} from 'pg';
 
+function dateFromDb(dbDate: string): Date {
+    const t = dbDate.split(/[- :]/).map(str => parseInt(str));
+    return new Date(t[0], t[1] - 1, t[2], t[3] || 0, t[4] || 0, t[5] || 0);
+}
+
+
+
+
 // Get the connection details from the Railway environment variables
 const dbHost = process.env.PGHOST || "";
 const dbPort = process.env.PGPORT || "";
@@ -58,5 +66,5 @@ query('SELECT NOW()')
     .catch((err) => console.error('Error executing query', err.stack));
 
 // Export the query function and the pool
-export { query, pool };
+export { query, pool, dateFromDb };
 

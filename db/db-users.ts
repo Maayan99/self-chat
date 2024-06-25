@@ -2,6 +2,8 @@
 import { User } from '../classes/user';
 import { query } from './db';
 import {Category} from "../classes/category";
+import {Note} from "../classes/note";
+import {noteObjFromDb} from "./db-notes";
 
 export class dbUsers {
 
@@ -46,9 +48,9 @@ export class dbUsers {
         await query('DELETE FROM users WHERE user_id = $1', [id]);
     }
 
-    static async getAllNotesForUser(userId: string): Promise<Category[]> {
+    static async getAllNotesForUser(userId: string): Promise<Note[]> {
         const response = await query('SELECT * FROM notes WHERE user_id = $1', [userId]);
 
-        return response.rows.map((row: any) => new Category(row.category_name, row.user_id, row.category_id));
+        return response.rows.map((row: any) => noteObjFromDb(row));
     }
 }

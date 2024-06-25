@@ -8,16 +8,20 @@ export class Contact {
     phoneNumber?: string;
     email?: string;
     createdAt: Date;
-    user?: User;
+    tags: string[];
 
-    constructor(dbId: string, userId: string, contactName?: string, phoneNumber?: string, email?: string, createdAt?: Date, user?: User) {
+    constructor(dbId: string, userId: string, contactName?: string, phoneNumber?: string, email?: string, createdAt?: Date, tags?: string[]) {
         this.dbId = dbId;
         this.userId = userId;
         this.contactName = contactName;
         this.phoneNumber = phoneNumber;
         this.email = email;
         this.createdAt = createdAt || new Date();
-        this.user = user;
+        if (tags) {
+            this.tags = tags;
+        } else {
+            this.tags = [];
+        }
     }
 
     getDbId(): string {
