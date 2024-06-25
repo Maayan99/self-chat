@@ -1,9 +1,8 @@
 // dbUsers.ts
 import { User } from '../classes/user';
 import { query } from './db';
-import {Category} from "../classes/category";
 import {Note} from "../classes/note";
-import {noteObjFromDb} from "./db-notes";
+import {dbNotes} from "./db-notes";
 
 export class dbUsers {
 
@@ -51,6 +50,6 @@ export class dbUsers {
     static async getAllNotesForUser(userId: string): Promise<Note[]> {
         const response = await query('SELECT * FROM notes WHERE user_id = $1', [userId]);
 
-        return response.rows.map((row: any) => noteObjFromDb(row));
+        return response.rows.map((row: any) => dbNotes.noteObjFromDb(row));
     }
 }
