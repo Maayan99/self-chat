@@ -47,4 +47,8 @@ export class dbContacts {
         await query('UPDATE contacts SET phone_number = $1 WHERE contact_id = $2',
             [contact.phoneNumber, contact.getDbId()]);
     }
+
+    static async deleteMonthOldContacts(): Promise<void> {
+        await query('DELETE FROM contacts WHERE created_at < (NOW() - INTERVAL 30 DAY)')
+    }
 }

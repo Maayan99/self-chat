@@ -46,4 +46,8 @@ export class dbLinks {
         await query('UPDATE links SET url = $1, extra_text = $2 WHERE link_id = $3',
             [link.url, link.extraText, link.dbId]);
     }
+
+    static async deleteMonthOldLinks(): Promise<void> {
+        await query('DELETE FROM links WHERE created_at < (NOW() - INTERVAL 30 DAY)')
+    }
 }
