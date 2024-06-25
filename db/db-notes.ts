@@ -13,11 +13,11 @@ export function noteObjFromDb(row: { [field: string]: any }): Note {
 }
 
 export class dbNotes {
-    static async createNote(noteText: string, userId: string, createdAt: Date): Promise<Note | null> {
+    static async createNote(noteText: string, userId: string): Promise<Note | null> {
         try {
             const response = await query(
-                'INSERT INTO notes (note_text, user_id, created_at) VALUES ($1, $2, $3) RETURNING *',
-                [noteText, userId, createdAt]
+                'INSERT INTO notes (note_text, user_id) VALUES ($1, $2, $3) RETURNING *',
+                [noteText, userId]
             );
 
             const row = response.rows[0];

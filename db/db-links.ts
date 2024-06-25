@@ -1,8 +1,17 @@
 // dbLinks.ts
 import { Link } from '../classes/link';
-import { query } from './db';
+import {dateFromDb, query} from './db';
 
 export class dbLinks {
+    static linkObjFromDb(row: { [field: string]: any }): Link {
+        if (typeof (row.link_id) !== "string"
+            || typeof (row.user_id) !== "string"
+            || typeof (row.url) !== "string") {
+            throw new Error("Trying to create link obj from a db row with missing data");
+        }
+        return new Link(row.link_id, row.url, row.user_id, row.extra_text, dateFromDb(row.created_at), row.tags);
+    }
+
     static async createLink(url: string, userId: string, extraText: string, createdAt: Date): Promise<Link | null> {
         try {
             const response = await query(
@@ -11,7 +20,7 @@ export class dbLinks {
             );
 
             const row = response.rows[0];
-            return new Link(row.link_id, row.url, row.user_id, row.extra_text, row.created_at);
+            return this.linkObjFromDb(row);
         } catch (error) {
             console.error('Error creating link:', error);
             return null;
@@ -23,7 +32,7 @@ export class dbLinks {
         const row = response.rows[0];
 
         if (row) {
-            return new Link(row.url, row.user_id, row.extra_text, row.created_at, row.link_id);
+            return this.linkObjFromDb(row);
         } else {
             return null;
         }
