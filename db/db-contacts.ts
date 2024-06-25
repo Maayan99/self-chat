@@ -8,7 +8,7 @@ export class dbContacts {
         if (typeof (row.contact_id) !== "string"
             || typeof (row.user_id) !== "string"
             || typeof (row.phone_number) !== "string") {
-            throw new Error("Trying to create link obj from a db row with missing data");
+            throw new Error("Trying to create contact obj from a db row with missing data");
         }
         return new Contact(row.contact_id, row.user_id, row.phone_number, dateFromDb(row.created_at), row.tags);
     }

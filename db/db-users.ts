@@ -1,10 +1,23 @@
 // dbUsers.ts
 import { User } from '../classes/user';
-import { query } from './db';
+import {dateFromDb, query} from './db';
 import {Note} from "../classes/note";
 import {dbNotes} from "./db-notes";
+import {dbLinks} from "./db-links";
+import {Link} from "../classes/link";
+import {dbContacts} from "./db-contacts";
+import {Contact} from "../classes/contact";
 
 export class dbUsers {
+    static userObjFromDb(row: { [field: string]: any }): User {
+        if (typeof (row.user_id) !== "string"
+            || typeof (row.phone_number) !== "string"
+            || typeof (row.plan) !== "string") {
+            throw new Error("Trying to create user obj from a db row with missing data");
+        }
+        return new User(row.phone_number, row.user_id, row.plan);
+    }
+
 
     static async createUser(phoneNumber: string, name: string): Promise<User | null> {
         try {
@@ -14,7 +27,7 @@ export class dbUsers {
             );
 
             const row = response.rows[0];
-            return new User(row.phone_number, row.user_id);
+            return this.userObjFromDb(row);
         } catch (error) {
             console.error('Error creating user:', error);
             return null;
@@ -26,7 +39,7 @@ export class dbUsers {
         const row = response.rows[0];
 
         if (row) {
-            return new User(row.phone_number, row.user_id);
+            return this.userObjFromDb(row);
         } else {
             return null;
         }
@@ -37,7 +50,7 @@ export class dbUsers {
         const row = response.rows[0];
 
         if (row) {
-            return new User(row.phone_number, row.user_id);
+            return this.userObjFromDb(row);
         } else {
             return null;
         }
@@ -51,5 +64,17 @@ export class dbUsers {
         const response = await query('SELECT * FROM notes WHERE user_id = $1', [userId]);
 
         return response.rows.map((row: any) => dbNotes.noteObjFromDb(row));
+    }
+
+    static async getAllLinksForUser(userId: string): Promise<Link[]> {
+        const response = await query('SELECT * FROM links WHERE user_id = $1', [userId]);
+
+        return response.rows.map((row: any) => dbLinks.linkObjFromDb(row));
+    }
+
+    static async getAllContactsForUser(userId: string): Promise<Contact[]> {
+        const response = await query('SELECT * FROM contacts WHERE user_id = $1', [userId]);
+
+        return response.rows.map((row: any) => dbContacts.contactObjFromDb(row));
     }
 }

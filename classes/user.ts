@@ -2,13 +2,23 @@
 import {ChatPartner} from "./chat-partner";
 import {dbUsers} from "../db/db-users";
 
+enum Plan {
+    Regular = "regular",
+    Paid = "paid"
+}
 export class User implements ChatPartner{
     dbId?: string;
+    plan: Plan;
     phone: string;
 
-    constructor(phoneNumber: string, dbId?: string) {
+    constructor(phoneNumber: string, dbId?: string, plan?: string) {
         this.dbId = dbId;
         this.phone = phoneNumber;
+        if (plan === Plan.Paid) {
+            this.plan = Plan.Paid;
+        } else {
+            this.plan = Plan.Regular;
+        }
     }
 
     async getDbId(): Promise<string | null> {
