@@ -9,6 +9,7 @@ const deleteTables = async () => {
         await query('DROP TABLE IF EXISTS links CASCADE');
         await query('DROP TABLE IF EXISTS fields CASCADE');
         await query('DROP TABLE IF EXISTS categories CASCADE');
+        await query('DROP TABLE IF EXISTS reminders CASCADE');
         await query('DROP TABLE IF EXISTS users CASCADE');
 
         console.log('Tables deleted successfully');
