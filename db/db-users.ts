@@ -77,4 +77,14 @@ export class dbUsers {
 
         return response.rows.map((row: any) => dbContacts.contactObjFromDb(row));
     }
+
+    static async getAllUsers(): Promise<User[]> {
+        try {
+            const response = await query('SELECT * FROM users ORDER BY created_at DESC');
+            return response.rows.map((row: any) => this.userObjFromDb(row));
+        } catch (error) {
+            console.error('Error fetching all users:', error);
+            throw error;
+        }
+    }
 }

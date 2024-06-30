@@ -5,11 +5,11 @@ import { ChatPartner } from '../classes/chat-partner';
 import { dbUsers } from '../db/db-users';
 import { dbNotes } from '../db/db-notes';
 import { dbLinks } from '../db/db-links';
-import { adminRoot } from '../conversation/admin-root';
-import { onboardingRoot } from '../conversation/onboarding-root';
+import { adminRoot } from '../trees/admin/admin-root';
+import { onboardingRoot } from '../trees/onboarding/root-node';
 import { ConversationHandler } from '../conversation-handler/conversation-handler';
 import { client, admins } from '../main';
-import { Exporter } from '../utils/exporter';
+import { Exporter } from './exporter';
 import { notifyAdminsError } from '../utils/admin-notifs-utility';
 import {dbReminders} from "../db/db-reminders";
 
