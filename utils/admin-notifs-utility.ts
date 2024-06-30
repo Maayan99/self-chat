@@ -1,5 +1,4 @@
 import {admins, client} from "../main";
-import {writeFileAsync} from "xlsx";
 
 async function notifyAdmins(message: string) {
     await Promise.all(admins.map(async (admin: string) => await client.sendMessage(message, admin)));

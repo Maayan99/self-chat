@@ -7,7 +7,7 @@ import {conversationHandlers} from "../main";
 import {OutboundMessage} from "../client/classes/outbound-message";
 import {ChatPartner} from "../classes/chat-partner";
 import {notifyAdminsError} from "../utils/admin-notifs-utility";
-import {presentNumberToCustomer} from "../utils/phone-number-utility";
+// import {presentNumberToCustomer} from "../utils/phone-number-utility";
 
 const OPEN: string = "open"
 const BUTTONS: string = "buttons"
@@ -98,7 +98,7 @@ export class ConversationHandler {
             }
         } catch (e) {
             console.error(e)
-            notifyAdminsError('נכשלתי במהלך השיחה עם מספר ' + presentNumberToCustomer(this.to) + ' בהודעת שגיאה:\n' + e)
+            notifyAdminsError('נכשלתי במהלך השיחה עם מספר ' + this.to + ' בהודעת שגיאה:\n' + e)
         }
     }
 
