@@ -2,7 +2,12 @@ import { ConvoNode } from '../../conversation-handler/classes/convo-node';
 import { VarRead, VarAppend } from '../../conversation-handler/classes/convo-vars';
 import { IncomingMessage } from '../../client/classes/incoming-message';
 import { dbUsers } from '../../db/db-users';
-import {User} from "../../classes/user";
+import { User } from "../../classes/user";
+import { client } from '../../main';
+import { createExcelFile } from '../../utils/csv-utility';
+import * as path from 'path';
+import * as fs from 'fs';
+import { volumeMountPath } from '../../main';
 
 export const adminRoot: ConvoNode = new ConvoNode(
     'buttons',
@@ -17,17 +22,29 @@ export const adminRoot: ConvoNode = new ConvoNode(
     {
         view_users: new ConvoNode(
             'open',
-            { body: 'מציג את רשימת המשתמשים...' },
+            { body: 'מכין קובץ אקסל עם רשימת המשתמשים...' },
             {
                 answer: async (message: IncomingMessage | undefined, read: VarRead, append: VarAppend) => {
                     const users: User[] = await dbUsers.getAllUsers();
-                    const userList = users.map(user => `${user.phone}: ${user.dbId}`).join('\n');
-                    append('user_list', userList);
-                    return new ConvoNode(
-                        'open',
-                        { body: (read) => `רשימת המשתמשים:\n${read('user_list')}` },
-                        { answer: adminRoot }
-                    );
+
+                    // Prepare data for Excel
+                    const data = users.map(user => [user.phone, user.dbId]);
+                    const columnHeaders = ['מספר טלפון', 'מזהה משתמש'];
+
+                    // Generate filename
+                    const filename = `users_${Date.now()}.xlsx`;
+
+                    // Create Excel file
+                    createExcelFile(filename, data, columnHeaders);
+
+                    // Send file
+                    await client.sendExcelFile('רשימת משתמשים', filename, message?.from || '');
+
+                    // Delete file after sending
+                    const filepath = path.join(volumeMountPath, filename);
+                    fs.unlinkSync(filepath);
+
+                    return adminRoot;
                 }
             },
             true
