@@ -1,16 +1,16 @@
-import { IncomingMessage } from '../client/classes/incoming-message';
-import { User } from '../classes/user';
-import { Admin } from '../classes/admin';
-import { ChatPartner } from '../classes/chat-partner';
-import { dbUsers } from '../db/db-users';
-import { dbNotes } from '../db/db-notes';
-import { dbLinks } from '../db/db-links';
-import { adminRoot } from '../trees/admin/admin-root';
-import { onboardingRoot } from '../trees/onboarding/root-node';
-import { ConversationHandler } from '../conversation-handler/conversation-handler';
+import {IncomingMessage} from '../client/classes/incoming-message';
+import {User} from '../classes/user';
+import {Admin} from '../classes/admin';
+import {ChatPartner} from '../classes/chat-partner';
+import {dbUsers} from '../db/db-users';
+import {dbNotes} from '../db/db-notes';
+import {dbLinks} from '../db/db-links';
+import {adminRoot} from '../trees/admin/admin-root';
+import {onboardingRoot} from '../trees/onboarding/root-node';
+import {ConversationHandler} from '../conversation-handler/conversation-handler';
 import {client, admins, messageHandler} from '../main';
-import { Exporter } from './exporter';
-import { notifyAdminsError } from '../utils/admin-notifs-utility';
+import {Exporter} from './exporter';
+import {notifyAdminsError} from '../utils/admin-notifs-utility';
 import {dbReminders} from "../db/db-reminders";
 import {createTables, deleteTables} from "../db/db-initialization";
 
@@ -192,9 +192,10 @@ export class MessageHandler {
     }
 
     private isReminder(message: string): boolean {
-        const reminderPattern = /^((\d{1,2}[/.]\d{1,2}([/.]\d{2,4})?)|(\d{1,2}:\d{2}))(.+)/;
+        const reminderPattern = /^(\d{1,2}[/.]\d{1,2}([/.]\d{2,4})?|\d{1,2}:\d{2}|ב(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת))(.+)/;
         return reminderPattern.test(message);
     }
+
 
     private isLink(message: string): boolean {
         const urlPattern = /https?:\/\/\S+/i;
@@ -203,26 +204,26 @@ export class MessageHandler {
 
     private async handleReminder(message: string, user: User): Promise<void> {
         try {
-            const reminderPattern = /^((\d{1,2}[/.]\d{1,2}([/.]\d{2,4})?)|(\d{1,2}:\d{2}))(.+)/;
+            const reminderPattern = /^((\d{1,2}[/.]\d{1,2}([/.]\d{2,4})?)|(\d{1,2}:\d{2})|(ב(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת))(\s\d{1,2}:\d{2})?)(.+)/;
             const match = message.match(reminderPattern);
 
             if (match) {
                 const dateTimeStr = match[1];
-                const reminderText = match[5].trim();
+                const reminderText = match[8].trim();
                 const dueDate = this.parseDueDate(dateTimeStr);
 
                 if (dueDate) {
                     const reminder = await dbReminders.createReminder(user.dbId || "", reminderText, dueDate);
                     if (reminder) {
-                        await client.sendMessage("התזכורת נשמרה בהצלחה.", user.phone);
+                        await client.sendMessage(`התזכורת נשמרה בהצלחה ל-${dueDate.toLocaleString('he-IL')}.`, user.phone);
                     } else {
                         throw new Error("נכשל ביצירת תזכורת");
                     }
                 } else {
-                    await client.sendMessage("לא הצלחתי להבין את התאריך או השעה. אנא נסה שוב בפורמט dd/mm/yy או hh:mm.", user.phone);
+                    await client.sendMessage("לא הצלחתי להבין את התאריך או השעה. אנא נסה שוב בפורמט dd/mm, dd/mm/yy, hh:mm, או 'בשם יום'.", user.phone);
                 }
             } else {
-                await client.sendMessage("פורמט התזכורת לא תקין. אנא השתמש בפורמט: dd/mm/yy תוכן התזכורת או hh:mm תוכן התזכורת.", user.phone);
+                await client.sendMessage("פורמט התזכורת לא תקין. אנא השתמש בפורמט: dd/mm תוכן התזכורת, dd/mm/yy תוכן התזכורת, hh:mm תוכן התזכורת, או 'בשם יום' תוכן התזכורת.", user.phone);
             }
         } catch (error) {
             console.error('שגיאה בשמירת תזכורת:', error);
@@ -233,24 +234,57 @@ export class MessageHandler {
 
     private parseDueDate(dateTimeStr: string): Date | null {
         const now = new Date();
-        const [day, month, year] = dateTimeStr.split(/[/.:]/).map(Number);
+        const hebrewDays = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
 
         if (dateTimeStr.includes(':')) {
             // It's a time
-            const dueDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), day, month);
+            const [hours, minutes] = dateTimeStr.split(':').map(Number);
+            const dueDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
             if (dueDate < now) {
                 dueDate.setDate(dueDate.getDate() + 1); // Set to tomorrow if the time has already passed today
             }
             return dueDate;
+        } else if (dateTimeStr.startsWith('ב')) {
+            // It's a day of the week
+            const dayName = dateTimeStr.substring(1).split(' ')[0];
+            const dayIndex = hebrewDays.indexOf(dayName);
+            if (dayIndex !== -1) {
+                const dueDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0); // Set to 8:00 AM
+                const daysUntilDue = (dayIndex + 7 - now.getDay()) % 7;
+                dueDate.setDate(dueDate.getDate() + daysUntilDue);
+
+                // Check if time is specified
+                const timeMatch = dateTimeStr.match(/\d{1,2}:\d{2}/);
+                if (timeMatch) {
+                    const [hours, minutes] = timeMatch[0].split(':').map(Number);
+                    dueDate.setHours(hours, minutes);
+                }
+
+                return dueDate;
+            }
         } else {
             // It's a date
-            const dueDate = new Date(year ? 2000 + year : now.getFullYear(), month - 1, day);
+            const [day, month, year] = dateTimeStr.split(/[/.]/).map(Number);
+            const dueDate = new Date(year ? 2000 + year : now.getFullYear(), month - 1, day, 8, 0); // Set to 8:00 AM
+
+            // Handle year rollover
             if (dueDate < now) {
-                dueDate.setFullYear(dueDate.getFullYear() + 1); // Set to next year if the date has already passed this year
+                if (!year) {
+                    // If year wasn't specified, and the date is in the past, set it to next year
+                    dueDate.setFullYear(dueDate.getFullYear() + 1);
+                } else {
+                    // If year was specified and it's still in the past, it's invalid
+                    return null;
+                }
             }
+
             return dueDate;
         }
+
+        return null;
     }
+
+
     private async handleLink(message: string, user: User): Promise<void> {
         const urlMatch = message.match(/(https?:\/\/\S+)/i);
         if (urlMatch) {
