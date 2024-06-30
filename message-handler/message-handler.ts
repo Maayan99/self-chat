@@ -8,7 +8,7 @@ import { dbLinks } from '../db/db-links';
 import { adminRoot } from '../trees/admin/admin-root';
 import { onboardingRoot } from '../trees/onboarding/root-node';
 import { ConversationHandler } from '../conversation-handler/conversation-handler';
-import { client, admins } from '../main';
+import {client, admins, messageHandler} from '../main';
 import { Exporter } from './exporter';
 import { notifyAdminsError } from '../utils/admin-notifs-utility';
 import {dbReminders} from "../db/db-reminders";
@@ -291,6 +291,23 @@ export class MessageHandler {
 
     private findConversationHandler(from: string): ConversationHandler | undefined {
         return this.conversationHandlers.find((handler) => handler.getConvoPartner() === from);
+    }
+
+    public addConversationHandler(handler: ConversationHandler): void {
+        this.conversationHandlers.push(handler);
+
+        console.log("Created a new convo handler! ")
+        console.log("New amount of conversations: " + this.conversationHandlers.length)
+    }
+
+    public removeConversationHandler(handler: ConversationHandler): void {
+        const index: number = this.conversationHandlers.indexOf(handler);
+        if (index !== -1) {
+            this.conversationHandlers.splice(index, 1);
+        }
+
+        console.error("Deleting conversation! ")
+        console.log("Conversations left standing: " + this.conversationHandlers.length)
     }
 
     private isAdmin(phoneNumber: string): boolean {

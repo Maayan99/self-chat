@@ -33,9 +33,6 @@ const client: Client = new Client(phoneNumberId, token)
 
 
 
-
-
-const conversationHandlers: ConversationHandler[] = []
 const users: User[] = []
 
 const admin1Number: string | undefined = process.env.ADMIN_1
@@ -139,7 +136,7 @@ function beforeShutdown() {
 export {
     client,
     admins,
-    conversationHandlers,
+    messageHandler,
     users,
     volumeMountPath,
 }

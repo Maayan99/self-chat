@@ -3,10 +3,10 @@ import {Client, IndexedListener} from "../client/client";
 import {AnswerHandler, ConvoNode} from "./classes/convo-node"
 import {ConvoVars} from "./classes/convo-vars";
 import {IncomingMessage} from "../client/classes/incoming-message";
-import {conversationHandlers} from "../main";
 import {OutboundMessage} from "../client/classes/outbound-message";
 import {ChatPartner} from "../classes/chat-partner";
 import {notifyAdminsError} from "../utils/admin-notifs-utility";
+import {messageHandler} from "../main";
 // import {presentNumberToCustomer} from "../utils/phone-number-utility";
 
 const OPEN: string = "open"
@@ -56,10 +56,7 @@ export class ConversationHandler {
         }
 
 
-        conversationHandlers.push(this)
-
-        console.log("Created a new convo handler! ")
-        console.log("New amount of conversations: " + conversationHandlers.length)
+        messageHandler.addConversationHandler(this)
     }
 
     /**
@@ -112,10 +109,7 @@ export class ConversationHandler {
         }
 
         // Delete this convo handler
-        conversationHandlers.splice(conversationHandlers.indexOf(this), 1)
-
-        console.error("Deleting conversation! ")
-        console.log("Conversations left standing: " + conversationHandlers.length)
+        messageHandler.removeConversationHandler(this)
     }
 
     /**
