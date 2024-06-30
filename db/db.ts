@@ -1,6 +1,9 @@
 import {Pool, PoolClient, QueryResult} from 'pg';
 
-function dateFromDb(dbDate: string): Date {
+function dateFromDb(dbDate: string): Date | undefined {
+    if (typeof dbDate !== "string") {
+        return undefined
+    }
     const t = dbDate.split(/[- :]/).map(str => parseInt(str));
     return new Date(t[0], t[1] - 1, t[2], t[3] || 0, t[4] || 0, t[5] || 0);
 }
