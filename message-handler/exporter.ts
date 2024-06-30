@@ -70,7 +70,7 @@ export class Exporter {
     }
 
     private async exportLinksToPdf(links: Link[], user: User): Promise<void> {
-        const filename = `links_${user.phone}_${getISTDate()}.pdf`;
+        const filename = `links_${user.phone}_${getISTDate().toISOString()}.pdf`;
         const filePath = path.join(volumeMountPath, filename);
 
         const doc = new PDFDocument();
@@ -111,13 +111,13 @@ export class Exporter {
     private async exportLinksToExcel(links: Link[], user: User): Promise<void> {
         const data = links.map(link => [link.url, link.extraText || '', link.createdAt.toISOString()]);
         const headers = ['קישור', 'הערה', 'תאריך יצירה'];
-        const filename = `links_${user.dbId}_${getISTDate()}.xlsx`;
+        const filename = `links_${user.phone}_${getISTDate().toISOString()}.xlsx`;
         createExcelFile(filename, data, headers);
         await client.sendMedia('מצורפות ההערות בקובץ אקסל', filename, WA_TYPE, EXCEL_MEDIA_TYPE, user.phone);
     }
 
     private async exportLinksToWord(links: Link[], user: User): Promise<void> {
-        const filename = `links_${user.dbId}_${getISTDate()}.docx`;
+        const filename = `links_${user.phone}_${getISTDate().toISOString()}.docx`;
         const filePath = path.join(volumeMountPath, filename);
 
         const doc = new Document({
@@ -159,7 +159,7 @@ export class Exporter {
     }
 
     private async exportNotesToPdf(notes: Note[], user: User): Promise<void> {
-        const filename = `notes_${user.dbId}_${getISTDate()}.pdf`;
+        const filename = `notes_${user.phone}_${getISTDate().toISOString()}.pdf`;
         const filePath = path.join(volumeMountPath, filename);
 
         const doc = new PDFDocument();
@@ -200,13 +200,13 @@ export class Exporter {
     private async exportNotesToExcel(notes: Note[], user: User): Promise<void> {
         const data = notes.map(note => [note.noteText, note.tags.join(', '), note.createdAt.toISOString()]);
         const headers = ['הערה', 'תגיות', 'תאריך יצירה'];
-        const filename = `notes_${user.dbId}_${getISTDate()}.xlsx`;
+        const filename = `notes_${user.phone}_${getISTDate().toISOString()}.xlsx`;
         createExcelFile(filename, data, headers);
-        await client.sendMedia('מצורפות ההערות בקובץ אקסל', filename, WA_TYPE, WORD_MEDIA_TYPE, user.phone);
+        await client.sendMedia('מצורפות ההערות בקובץ אקסל', filename, WA_TYPE, EXCEL_MEDIA_TYPE, user.phone);
     }
 
     private async exportNotesToWord(notes: Note[], user: User): Promise<void> {
-        const filename = `notes_${user.dbId}_${getISTDate()}.docx`;
+        const filename = `notes_${user.phone}_${getISTDate().toISOString()}.docx`;
         const filePath = path.join(volumeMountPath, filename);
 
         const doc = new Document({
@@ -244,7 +244,7 @@ export class Exporter {
         const buffer = await Packer.toBuffer(doc);
         fs.writeFileSync(filePath, buffer);
 
-        await client.sendMedia('מצורפות ההערות בקובץ וורד', filename, WA_TYPE, EXCEL_MEDIA_TYPE, user.phone);
+        await client.sendMedia('מצורפות ההערות בקובץ וורד', filename, WA_TYPE, WORD_MEDIA_TYPE, user.phone);
     }
 
     private async sendFile(filename: string, phone: string, caption: string): Promise<void> {

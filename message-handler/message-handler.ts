@@ -183,8 +183,7 @@ export class MessageHandler {
         }
 
         try {
-            const result = await this.exporter.export(user, exportType, format);
-            await client.sendMessage(`ה${exportType} שלך יוצאו בפורמט ${format}. ${result}`, user.phone);
+            await this.exporter.export(user, exportType, format);
         } catch (error) {
             console.error('שגיאת ייצוא:', error);
             await notifyAdminsError(`שגיאת ייצוא עבור משתמש ${user.phone}: ${error}`);
