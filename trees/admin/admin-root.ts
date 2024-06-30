@@ -8,6 +8,7 @@ import { createExcelFile } from '../../utils/csv-utility';
 import * as path from 'path';
 import * as fs from 'fs';
 import { volumeMountPath } from '../../main';
+import {getISTDate} from "../../utils/date-utility";
 
 export const adminRoot: ConvoNode = new ConvoNode(
     'buttons',
@@ -28,11 +29,11 @@ export const adminRoot: ConvoNode = new ConvoNode(
                     const users: User[] = await dbUsers.getAllUsers();
 
                     // Prepare data for Excel
-                    const data = users.map(user => [user.phone, user.dbId]);
+                    const data: string[][] = users.map(user => [user.phone, user.dbId || ""]);
                     const columnHeaders = ['מספר טלפון', 'מזהה משתמש'];
 
                     // Generate filename
-                    const filename = `users_${Date.now()}.xlsx`;
+                    const filename = `users_${getISTDate().toISOString()}.xlsx`;
 
                     // Create Excel file
                     createExcelFile(filename, data, columnHeaders);
