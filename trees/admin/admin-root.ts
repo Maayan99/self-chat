@@ -85,7 +85,7 @@ export const adminRoot: ConvoNode = new ConvoNode(
                         return new ConvoNode(
                             'open',
                             { body: 'לא התקבלה הודעה. נסה שוב.' },
-                            { answer: this }
+                            { answer: null }
                         );
                     }
                 }
