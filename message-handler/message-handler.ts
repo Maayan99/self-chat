@@ -80,7 +80,7 @@ export class MessageHandler {
         } catch (error) {
             console.error('שגיאה בטיפול בהודעה:', error);
             await notifyAdminsError(`שגיאה בטיפול בהודעה ממספר ${from}: ${error}`);
-            await client.sendMessage("אירעה שגיאה בעיבוד הבקשה שלך. צוות התמיכה שלנו יבדוק את הבעיה.", from);
+            await client.sendMessage("אירעה שגיאה בעיבוד ההודעה שלך, אנא נסה שוב", from);
         }
     }
 
@@ -123,7 +123,7 @@ export class MessageHandler {
         } catch (error) {
             console.error('שגיאה בטיפול בהודעת לקוח:', error);
             await notifyAdminsError(`שגיאה בטיפול בהודעת לקוח ממספר ${phone}: ${error}`);
-            await client.sendMessage("אירעה שגיאה בעיבוד ההודעה שלך. צוות התמיכה שלנו יבדוק את הבעיה.", phone);
+            await client.sendMessage("אירעה שגיאה בעיבוד ההודעה שלך, אנא נסה שוב", phone);
         }
     }
 
@@ -135,7 +135,7 @@ export class MessageHandler {
         } catch (error) {
             console.error('שגיאה בתהליך ה-onboarding:', error);
             await notifyAdminsError(`שגיאה בתהליך ה-onboarding עבור משתמש ${user.phone}: ${error}`);
-            await client.sendMessage("אירעה שגיאה בתהליך ההרשמה. צוות התמיכה שלנו יצור איתך קשר בקרוב.", user.phone);
+            await client.sendMessage("אירעה שגיאה בתהליך ההרשמה שלך, אנא נסה שוב", user.phone);
         }
     }
 
