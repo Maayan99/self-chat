@@ -11,7 +11,7 @@ export class dbNotes {
             || typeof (row.user_id) !== "string") {
             throw new Error("Trying to create note obj from a db row with missing data");
         }
-        return new Note(row.note_id, row.note_text, row.user_id, dateFromDb(row.created_at), row.tags);
+        return new Note(row.note_id, row.note_text, row.user_id, row.created_at, row.tags);
     }
 
     static async createNote(noteText: string, userId: string): Promise<Note | null> {

@@ -16,7 +16,7 @@ export class dbReminders {
             row.reminder_text,
             row.due_date,
             row.is_completed,
-            dateFromDb(row.created_at)
+            row.created_at
         );
     }
 

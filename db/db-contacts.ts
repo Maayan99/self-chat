@@ -10,7 +10,7 @@ export class dbContacts {
             || typeof (row.phone_number) !== "string") {
             throw new Error("Trying to create contact obj from a db row with missing data");
         }
-        return new Contact(row.contact_id, row.user_id, row.phone_number, dateFromDb(row.created_at), row.tags);
+        return new Contact(row.contact_id, row.user_id, row.phone_number, row.created_at, row.tags);
     }
 
     static async createContact(userId: string, contactName: string, phoneNumber: string, email: string, createdAt: Date): Promise<Contact | null> {

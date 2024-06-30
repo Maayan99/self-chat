@@ -9,7 +9,7 @@ export class dbLinks {
             || typeof (row.url) !== "string") {
             throw new Error("Trying to create link obj from a db row with missing data");
         }
-        return new Link(row.link_id, row.url, row.user_id, row.extra_text, dateFromDb(row.created_at), row.tags);
+        return new Link(row.link_id, row.url, row.user_id, row.extra_text, row.created_at, row.tags);
     }
 
     static async createLink(url: string, userId: string, extraText: string, createdAt: Date): Promise<Link | null> {
