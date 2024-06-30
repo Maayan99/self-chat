@@ -2,7 +2,7 @@
   "name": "self-chat",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "main.ts",
   "scripts": {
     "dev": "ts-node main.ts",
     "start": "node build/main.js",
