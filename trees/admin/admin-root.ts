@@ -3,12 +3,13 @@ import { VarRead, VarAppend } from '../../conversation-handler/classes/convo-var
 import { IncomingMessage } from '../../client/classes/incoming-message';
 import { dbUsers } from '../../db/db-users';
 import { User } from "../../classes/user";
-import { client } from '../../main';
+import {admins, client} from '../../main';
 import { createExcelFile } from '../../utils/csv-utility';
 import * as path from 'path';
 import * as fs from 'fs';
 import { volumeMountPath } from '../../main';
 import {getISTDate} from "../../utils/date-utility";
+import {setEnvironmentData} from "node:worker_threads";
 
 export const adminRoot: ConvoNode = new ConvoNode(
     'buttons',
@@ -39,13 +40,13 @@ export const adminRoot: ConvoNode = new ConvoNode(
                     createExcelFile(filename, data, columnHeaders);
 
                     // Send file
-                    await client.sendExcelFile('רשימת משתמשים', filename, message?.from || '');
+                    await client.sendExcelFile('רשימת משתמשים', filename, message?.from || admins[0]);
 
                     // Delete file after sending
                     const filepath = path.join(volumeMountPath, filename);
                     fs.unlinkSync(filepath);
 
-                    return adminRoot;
+                    return null;
                 }
             },
             true
@@ -78,13 +79,13 @@ export const adminRoot: ConvoNode = new ConvoNode(
                         return new ConvoNode(
                             'open',
                             { body: 'ההודעה נשלחה בהצלחה לכל המשתמשים.' },
-                            { answer: adminRoot }
+                            { answer: null }
                         );
                     } else {
                         return new ConvoNode(
                             'open',
                             { body: 'לא התקבלה הודעה. נסה שוב.' },
-                            { answer: adminRoot }
+                            { answer: this }
                         );
                     }
                 }
