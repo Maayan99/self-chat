@@ -11,10 +11,10 @@ import {MessageHandler} from "./message-handler/message-handler";
 const closeBot = process.env.CLOSE_BOT === 'true';
 
 const inProduction: boolean = process.env.MODE === 'prod';
-const volumeMountPath: string | undefined = process.env.RAILWAY_VOLUME_MOUNT_PATH;
-if (!volumeMountPath) {
+if (!process.env.RAILWAY_VOLUME_MOUNT_PATH) {
     throw new Error("Missing env var volumeMountPath");
 }
+const volumeMountPath: string = process.env.RAILWAY_VOLUME_MOUNT_PATH;
 
 const phoneNumberId: string | undefined = process.env.NUMBER_ID;
 const token: string | undefined = process.env.ACCESS_TOKEN;
