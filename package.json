@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "ts-node main.ts",
     "prestart": "npm run build",
-    "start": "node dist/main.js",
+    "start": "node main.js",
     "build": "tsc --project tsconfig.json",
     "postinstall": "npm run build"
   },
