@@ -69,12 +69,6 @@ export class MessageHandler {
                 throw new Error(`נכשל ביצירת משתמש עבור מספר טלפון: ${from}`);
             }
 
-            // Handle export command
-            if (msgBody.startsWith('ייצא ')) {
-                await this.handleExportCommand(msgBody, user);
-                return;
-            }
-
             // Handle customer message
             await this.handleCustomerMessage(message, user);
         } catch (error) {
@@ -111,6 +105,12 @@ export class MessageHandler {
                 if (!user) {
                     throw new Error("לא ניתן ליצור או לאחזר משתמש");
                 }
+            }
+
+            // Handle export command
+            if (msgBody.startsWith('ייצא ')) {
+                await this.handleExportCommand(msgBody, user);
+                return;
             }
 
             if (this.isReminder(msgBody)) {
