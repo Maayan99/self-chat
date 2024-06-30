@@ -5,9 +5,8 @@
   "main": "main.ts",
   "scripts": {
     "dev": "ts-node main.ts",
-    "prestart": "npm run build",
     "start": "node main.js",
-    "build": "tsc --project tsconfig.json",
+    "build": "tsc",
     "postinstall": "npm run build"
   },
   "keywords": [],
