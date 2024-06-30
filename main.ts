@@ -7,6 +7,7 @@ import {IncomingMessage, MessageType} from "./client/classes/incoming-message";
 import {getISTDate} from "./utils/date-utility";
 import {notifyAdmins} from "./utils/admin-notifs-utility";
 import {MessageHandler} from "./message-handler/message-handler";
+import {RemindersManager} from "./reminders-manager/reminders-manager";
 
 const closeBot = process.env.CLOSE_BOT === 'true';
 
@@ -32,6 +33,7 @@ if (!volumeMountPath) {
 const client: Client = new Client(phoneNumberId, token)
 
 
+const remindersManager = new RemindersManager();
 
 const users: User[] = []
 
@@ -134,6 +136,7 @@ function beforeShutdown() {
 }
 
 export {
+    remindersManager,
     client,
     admins,
     messageHandler,

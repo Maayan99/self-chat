@@ -60,8 +60,8 @@ export class dbReminders {
         return response.rows.map((row: any) => this.reminderObjFromDb(row));
     }
 
-    static async getPendingRemindersForUser(userId: string): Promise<Reminder[]> {
-        const response = await query('SELECT * FROM reminders WHERE user_id = $1 AND is_completed = false AND due_date > NOW() ORDER BY due_date ASC', [userId]);
+    static async getAllPendingReminders(): Promise<Reminder[]> {
+        const response = await query('SELECT * FROM reminders is_completed = false AND due_date > NOW() ORDER BY due_date ASC');
         return response.rows.map((row: any) => this.reminderObjFromDb(row));
     }
 }

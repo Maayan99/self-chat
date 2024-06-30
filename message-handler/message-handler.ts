@@ -8,7 +8,7 @@ import {dbLinks} from '../db/db-links';
 import {adminRoot} from '../trees/admin/admin-root';
 import {onboardingRoot} from '../trees/onboarding/root-node';
 import {ConversationHandler} from '../conversation-handler/conversation-handler';
-import {client, admins, messageHandler} from '../main';
+import {client, admins, messageHandler, remindersManager} from '../main';
 import {Exporter} from './exporter';
 import {notifyAdminsError} from '../utils/admin-notifs-utility';
 import {dbReminders} from "../db/db-reminders";
@@ -215,6 +215,7 @@ export class MessageHandler {
                 if (dueDate) {
                     const reminder = await dbReminders.createReminder(user.dbId || "", reminderText, dueDate);
                     if (reminder) {
+                        remindersManager.addReminder(reminder);
                         await client.sendMessage(`התזכורת נשמרה בהצלחה ל-${dueDate.toLocaleString('he-IL')}.`, user.phone);
                     } else {
                         throw new Error("נכשל ביצירת תזכורת");
