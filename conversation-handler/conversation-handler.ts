@@ -27,7 +27,7 @@ export class ConversationHandler {
     private client: Client
     private readonly convoVars: ConvoVars
     private currentMessage: string | undefined;
-    private inactivityTimeoutFuncId: NodeJS.Timeout | undefined;
+    private inactivityTimeoutFuncId: ReturnType<typeof setTimeout> | undefined;
     private currentListener: IndexedListener | undefined;
 
     /**
