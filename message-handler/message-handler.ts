@@ -12,6 +12,7 @@ import { client, admins } from '../main';
 import { Exporter } from './exporter';
 import { notifyAdminsError } from '../utils/admin-notifs-utility';
 import {dbReminders} from "../db/db-reminders";
+import {createTables, deleteTables} from "../db/db-initialization";
 
 export class MessageHandler {
     private conversationHandlers: ConversationHandler[] = [];
@@ -29,12 +30,24 @@ export class MessageHandler {
             // Check for existing conversation handler
             const existingHandler = this.findConversationHandler(from);
             if (existingHandler) {
+                if (msgBody == 'בטל') {
+                    existingHandler.deleteConvo();
+                    return;
+                }
                 await existingHandler.handleTriggerMessage(message);
                 return;
             }
 
             // Handle admin messages
             if (this.isAdmin(from)) {
+                if (msgBody === "אתחול דאהטבייס טייבלס") {
+                    createTables();
+                    return;
+                }
+                if (msgBody === "דרופ דרופ דרופ") {
+                    deleteTables();
+                    return;
+                }
                 if (msgBody.startsWith('לקוח ')) {
                     const customerMessage = msgBody.substring(5).trim();
                     await this.handleCustomerMessage(new IncomingMessage(customerMessage, message.id, from, message.type, message.contextId));
