@@ -12,6 +12,9 @@ const closeBot = process.env.CLOSE_BOT === 'true';
 
 const inProduction: boolean = process.env.MODE === 'prod';
 const volumeMountPath: string | undefined = process.env.RAILWAY_VOLUME_MOUNT_PATH;
+if (!volumeMountPath) {
+    throw new Error("Missing env var volumeMountPath");
+}
 
 const phoneNumberId: string | undefined = process.env.NUMBER_ID;
 const token: string | undefined = process.env.ACCESS_TOKEN;
@@ -52,7 +55,7 @@ client.on("initialized", async () => {
 
 const messageHandler = new MessageHandler();
 
-client.on('message-received', (message) => messageHandler.handleReceivedMessage(message));
+client.on('message-received', (message) => messageHandler.handleMessage(message));
 
 const app = express();
 
