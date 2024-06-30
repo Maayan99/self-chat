@@ -65,6 +65,15 @@ const createTables = async (): Promise<void> => {
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );`);
 
+        await query(`CREATE TABLE IF NOT EXISTS reminders (
+    reminder_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES users(user_id),
+    reminder_text TEXT NOT NULL,
+    due_date TIMESTAMP WITH TIME ZONE NOT NULL,
+    is_completed BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+);`);
+
         console.log('Tables created successfully');
     } catch (err) {
         console.error('Error creating tables:', err);

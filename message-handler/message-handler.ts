@@ -11,6 +11,7 @@ import { ConversationHandler } from '../conversation-handler/conversation-handle
 import { client, admins } from '../main';
 import { Exporter } from '../utils/exporter';
 import { notifyAdminsError } from '../utils/admin-notifs-utility';
+import {dbReminders} from "../db/db-reminders";
 
 export class MessageHandler {
     private conversationHandlers: ConversationHandler[] = [];
@@ -179,7 +180,7 @@ export class MessageHandler {
     }
 
     private isReminder(message: string): boolean {
-        const reminderPattern = /^(\d{1,2}[/.]\d{1,2}([/.]\d{2,4})?|\d{1,2}:\d{2})/;
+        const reminderPattern = /^((\d{1,2}[/.]\d{1,2}([/.]\d{2,4})?)|(\d{1,2}:\d{2}))(.+)/;
         return reminderPattern.test(message);
     }
 
@@ -190,13 +191,26 @@ export class MessageHandler {
 
     private async handleReminder(message: string, user: User): Promise<void> {
         try {
-            const note = await dbNotes.createNote(message, user.dbId || "");
-            if (note) {
-                note.tags.push("תזכורת");
-                await dbNotes.updateDbNote(note);
-                await client.sendMessage("התזכורת נשמרה בהצלחה.", user.phone);
+            const reminderPattern = /^((\d{1,2}[/.]\d{1,2}([/.]\d{2,4})?)|(\d{1,2}:\d{2}))(.+)/;
+            const match = message.match(reminderPattern);
+
+            if (match) {
+                const dateTimeStr = match[1];
+                const reminderText = match[5].trim();
+                const dueDate = this.parseDueDate(dateTimeStr);
+
+                if (dueDate) {
+                    const reminder = await dbReminders.createReminder(user.dbId || "", reminderText, dueDate);
+                    if (reminder) {
+                        await client.sendMessage("התזכורת נשמרה בהצלחה.", user.phone);
+                    } else {
+                        throw new Error("נכשל ביצירת תזכורת");
+                    }
+                } else {
+                    await client.sendMessage("לא הצלחתי להבין את התאריך או השעה. אנא נסה שוב בפורמט dd/mm/yy או hh:mm.", user.phone);
+                }
             } else {
-                throw new Error("נכשל ביצירת תזכורת");
+                await client.sendMessage("פורמט התזכורת לא תקין. אנא השתמש בפורמט: dd/mm/yy תוכן התזכורת או hh:mm תוכן התזכורת.", user.phone);
             }
         } catch (error) {
             console.error('שגיאה בשמירת תזכורת:', error);
@@ -205,6 +219,26 @@ export class MessageHandler {
         }
     }
 
+    private parseDueDate(dateTimeStr: string): Date | null {
+        const now = new Date();
+        const [day, month, year] = dateTimeStr.split(/[/.:]/).map(Number);
+
+        if (dateTimeStr.includes(':')) {
+            // It's a time
+            const dueDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), day, month);
+            if (dueDate < now) {
+                dueDate.setDate(dueDate.getDate() + 1); // Set to tomorrow if the time has already passed today
+            }
+            return dueDate;
+        } else {
+            // It's a date
+            const dueDate = new Date(year ? 2000 + year : now.getFullYear(), month - 1, day);
+            if (dueDate < now) {
+                dueDate.setFullYear(dueDate.getFullYear() + 1); // Set to next year if the date has already passed this year
+            }
+            return dueDate;
+        }
+    }
     private async handleLink(message: string, user: User): Promise<void> {
         const urlMatch = message.match(/(https?:\/\/\S+)/i);
         if (urlMatch) {
