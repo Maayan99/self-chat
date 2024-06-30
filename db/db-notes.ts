@@ -17,7 +17,7 @@ export class dbNotes {
     static async createNote(noteText: string, userId: string): Promise<Note | null> {
         try {
             const response = await query(
-                'INSERT INTO notes (note_text, user_id) VALUES ($1, $2, $3) RETURNING *',
+                'INSERT INTO notes (note_text, user_id) VALUES ($1, $2) RETURNING *',
                 [noteText, userId]
             );
 
