@@ -73,12 +73,22 @@ export class Exporter {
         const filename = `links_${user.phone}_${getISTDate().toISOString()}.pdf`;
         const filePath = path.join(volumeMountPath, filename);
 
-        const doc = new PDFDocument();
-        const stream = fs.createWriteStream(filePath);
+        const doc = new PDFDocument({
+            size: 'A4',
+            margin: 50,
+            info: {
+                Title: 'הקישורים שלך',
+                Author: 'מערכת קישורים',
+            }
+        });
 
+        const stream = fs.createWriteStream(filePath);
         doc.pipe(stream);
 
-        doc.fontSize(16).text('הקישורים שלך', { align: 'center' });
+        // Register a Hebrew font
+        doc.registerFont('Hebrew', path.join(__dirname, '../fonts/NotoSansHebrew-Regular.ttf'));
+
+        doc.font('Hebrew').fontSize(18).text('הקישורים שלך', { align: 'right' });
         doc.moveDown();
 
         links.forEach((link, index) => {
@@ -93,7 +103,7 @@ export class Exporter {
 
         await new Promise<void>((resolve) => stream.on('finish', resolve));
 
-        await client.sendMedia('מצורפות ההערות בקובץ pdf', filename, WA_TYPE, PDF_MEDIA_TYPE, user.phone);
+        await client.sendMedia('מצורפים הלינקים בקובץ pdf', filename, WA_TYPE, PDF_MEDIA_TYPE, user.phone);
     }
 
     private async exportLinksToMessage(links: Link[], user: User): Promise<void> {
@@ -101,7 +111,7 @@ export class Exporter {
         links.forEach((link, index) => {
             message += `${index + 1}. ${link.url}\n`;
             if (link.extraText) {
-                message += `   הערה: ${link.extraText}\n`;
+                message += `   לינק: ${link.extraText}\n`;
             }
             message += '\n';
         });
@@ -113,7 +123,7 @@ export class Exporter {
         const headers = ['קישור', 'הערה', 'תאריך יצירה'];
         const filename = `links_${user.phone}_${getISTDate().toISOString()}.xlsx`;
         createExcelFile(filename, data, headers);
-        await client.sendMedia('מצורפות ההערות בקובץ אקסל', filename, WA_TYPE, EXCEL_MEDIA_TYPE, user.phone);
+        await client.sendMedia('מצורפים הלינקים בקובץ אקסל', filename, WA_TYPE, EXCEL_MEDIA_TYPE, user.phone);
     }
 
     private async exportLinksToWord(links: Link[], user: User): Promise<void> {
@@ -155,25 +165,35 @@ export class Exporter {
         const buffer = await Packer.toBuffer(doc);
         fs.writeFileSync(filePath, buffer);
 
-        await client.sendMedia('מצורפות ההערות בקובץ וורד', filename, WA_TYPE, WORD_MEDIA_TYPE, user.phone);
+        await client.sendMedia('מצורפים הלינקים בקובץ וורד', filename, WA_TYPE, WORD_MEDIA_TYPE, user.phone);
     }
 
     private async exportNotesToPdf(notes: Note[], user: User): Promise<void> {
         const filename = `notes_${user.phone}_${getISTDate().toISOString()}.pdf`;
         const filePath = path.join(volumeMountPath, filename);
 
-        const doc = new PDFDocument();
-        const stream = fs.createWriteStream(filePath);
+        const doc = new PDFDocument({
+            size: 'A4',
+            margin: 50,
+            info: {
+                Title: 'ההערות שלך',
+                Author: 'מערכת הערות',
+            }
+        });
 
+        const stream = fs.createWriteStream(filePath);
         doc.pipe(stream);
 
-        doc.fontSize(16).text('ההערות שלך', { align: 'center' });
+        // Register a Hebrew font
+        doc.registerFont('Hebrew', path.join(__dirname, '../fonts/NotoSansHebrew-Regular.ttf'));
+
+        doc.font('Hebrew').fontSize(18).text('ההערות שלך', { align: 'right' });
         doc.moveDown();
 
         notes.forEach((note, index) => {
-            doc.fontSize(12).text(`${index + 1}. ${note.noteText}`);
+            doc.font('Hebrew').fontSize(14).text(`${index + 1}. ${note.noteText}`, { align: 'right' });
             if (note.tags.length > 0) {
-                doc.fontSize(10).text(`תגיות: ${note.tags.join(', ')}`, { indent: 20 });
+                doc.font('Hebrew').fontSize(12).text(`תגיות: ${note.tags.join(', ')}`, { align: 'right', indent: 20 });
             }
             doc.moveDown();
         });
