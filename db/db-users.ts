@@ -19,11 +19,11 @@ export class dbUsers {
     }
 
 
-    static async createUser(phoneNumber: string, name: string): Promise<User | null> {
+    static async createUser(phoneNumber: string): Promise<User | null> {
         try {
             const response = await query(
-                'INSERT INTO users (phone_number, name) VALUES ($1, $2) RETURNING *',
-                [phoneNumber, name]
+                'INSERT INTO users (phone_number) VALUES ($1) RETURNING *',
+                [phoneNumber]
             );
 
             const row = response.rows[0];

@@ -88,7 +88,7 @@ export class MessageHandler {
         try {
             let user = await dbUsers.getUserByPhone(phoneNumber);
             if (!user) {
-                user = await dbUsers.createUser(phoneNumber, "");
+                user = await dbUsers.createUser(phoneNumber);
                 if (user) {
                     await this.startOnboarding(user);
                 }
