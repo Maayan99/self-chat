@@ -44,7 +44,7 @@ const HELP_MESSAGE = `
 
 
 export class MessageHandler {
-    private conversationHandlers: ConversationHandler[] = [];
+    private conversationHandlers: Map<string, ConversationHandler> = new Map();
     private exporter: Exporter;
 
     constructor() {
@@ -63,10 +63,10 @@ export class MessageHandler {
             }
 
             // Check for existing conversation handler
-            const existingHandler = this.findConversationHandler(from);
+            const existingHandler = this.conversationHandlers.get(from);
             if (existingHandler) {
-                if (msgBody == 'בטל') {
-                    existingHandler.deleteConvo();
+                if (msgBody === 'בטל') {
+                    await this.deleteConversationHandler(from);
                     await client.reactToMessage(message.id, '👍', from);
                     return;
                 }
@@ -327,27 +327,26 @@ export class MessageHandler {
         }
     }
 
-    private findConversationHandler(from: string): ConversationHandler | undefined {
-        return this.conversationHandlers.find((handler) => handler.getConvoPartner() === from);
+    private async deleteConversationHandler(from: string): Promise<void> {
+        const handler = this.conversationHandlers.get(from);
+        if (handler) {
+            await handler.deleteConvo();
+            this.conversationHandlers.delete(from);
+            console.log(`Deleted conversation handler for ${from}. Remaining handlers: ${this.conversationHandlers.size}`);
+        }
     }
 
     public addConversationHandler(handler: ConversationHandler): void {
-        this.conversationHandlers.push(handler);
-
-        console.log("Created a new convo handler! ")
-        console.log("New amount of conversations: " + this.conversationHandlers.length)
+        this.conversationHandlers.set(handler.getConvoPartner(), handler);
+        console.log(`Added a new conversation handler for ${handler.getConvoPartner()}. Total handlers: ${this.conversationHandlers.size}`);
     }
 
     public removeConversationHandler(handler: ConversationHandler): void {
-        const index: number = this.conversationHandlers.indexOf(handler);
-        if (index !== -1) {
-            this.conversationHandlers.splice(index, 1);
+        const from = handler.getConvoPartner();
+        if (this.conversationHandlers.delete(from)) {
+            console.log(`Removed conversation handler for ${from}. Remaining handlers: ${this.conversationHandlers.size}`);
         }
-
-        console.error("Deleting conversation! ")
-        console.log("Conversations left standing: " + this.conversationHandlers.length)
     }
-
     private isAdmin(phoneNumber: string): boolean {
         return admins.includes(phoneNumber);
     }
