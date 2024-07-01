@@ -26,7 +26,7 @@ import {
     setDay,
     isValid
 } from 'date-fns';
-import { zonedTimeToUtc, utcToZonedTime } from 'date-fns-tz';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 
 
 const TIMEZONE = 'Asia/Jerusalem'; // Israel Standard Time
@@ -304,7 +304,7 @@ export class MessageHandler {
                 const reminder = await dbReminders.createReminder(user.dbId || "", reminderText, dueDate);
                 if (reminder) {
                     remindersManager.addReminder(reminder);
-                    const zonedDueDate = utcToZonedTime(dueDate, TIMEZONE);
+                    const zonedDueDate = toZonedTime(dueDate, TIMEZONE);
                     await client.sendMessage(`התזכורת "${reminderText}" נשמרה בהצלחה ל-${zonedDueDate.toLocaleString('he-IL')}.`, user.phone);
                 } else {
                     throw new Error("נכשל ביצירת תזכורת");
@@ -321,7 +321,7 @@ export class MessageHandler {
 
     private parseDueDate(dateTimeStr: string): Date | null {
         const now = new Date();
-        let dueDate = utcToZonedTime(now, TIMEZONE);
+        let dueDate = toZonedTime(now, TIMEZONE);
         const hebrewDays = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
 
         dateTimeStr = dateTimeStr.replace(/\s*-\s*/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -349,7 +349,7 @@ export class MessageHandler {
                         dueDate = addMinutes(dueDate, 15);
                         break;
                 }
-                return zonedTimeToUtc(dueDate, TIMEZONE);
+                return fromZonedTime(dueDate, TIMEZONE);
             }
         }
 
@@ -407,11 +407,11 @@ export class MessageHandler {
             dueDate = addDays(dueDate, 1);
         }
 
-        return zonedTimeToUtc(dueDate, TIMEZONE);
+        return fromZonedTime(dueDate, TIMEZONE);
     }
 
     private parseContextAwareDay(dateStr: string, dayIndex: number): Date {
-        const now = utcToZonedTime(new Date(), TIMEZONE);
+        const now = toZonedTime(new Date(), TIMEZONE);
         let dueDate = setDay(now, dayIndex);
         if (dateStr.includes('הבא') || dateStr.includes('הקרוב')) {
             if (isBefore(dueDate, now) || isSameDay(dueDate, now)) {
