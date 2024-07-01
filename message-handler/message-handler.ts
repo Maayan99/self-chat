@@ -13,7 +13,19 @@ import {Exporter} from './exporter';
 import {notifyAdminsError, notifyAdminsUpdate} from '../utils/admin-notifs-utility';
 import {dbReminders} from "../db/db-reminders";
 import {createTables, deleteTables} from "../db/db-initialization";
-import { parse, addDays, setHours, setMinutes, isBefore, isSameDay, addWeeks, addHours, addMinutes, setDay } from 'date-fns';
+import {
+    parse,
+    addDays,
+    setHours,
+    setMinutes,
+    isBefore,
+    isSameDay,
+    addWeeks,
+    addHours,
+    addMinutes,
+    setDay,
+    isValid
+} from 'date-fns';
 
 
 const HELP_MESSAGE = `
@@ -211,15 +223,33 @@ export class MessageHandler {
         return urlPattern.test(message);
     }
     private isReminder(message: string): boolean {
-        const reminderPattern = /(היום|מחר|ביום (ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|\d{1,2}[/.]\d{1,2}([/.]\d{2,4})?|\d{1,2}:\d{2})/i;
-        return reminderPattern.test(message);
+        const reminderPatterns = [
+            // Fuzzy time patterns
+            /בעוד (שעתיים|שעה|חצי שעה|רבע שעה)/,
+
+            // Date patterns
+            /\d{1,2}[./]\d{1,2}([./]\d{2,4})?/,
+
+            // Time patterns
+            /\d{1,2}[:.]?\d{2}/,
+
+            // Day words
+            /\b(היום|מחר)\b/,
+            /\b(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)(\s?(הבא|הקרוב))?\b/,
+
+            // Time words
+            /\b(בבוקר|בצהריים|אחה"צ|בערב|בלילה)\b/,
+            /\b(אחת|שתיים|שלוש|ארבע|חמש|שש|שבע|שמונה|תשע|עשר|אחת עשרה|שתים עשרה)\b/
+        ];
+
+        return reminderPatterns.some(pattern => pattern.test(message.toLowerCase()));
     }
 
     private async handleReminder(message: string, user: User): Promise<void> {
         try {
             const dueDate = this.parseDueDate(message);
             if (dueDate) {
-                const reminderText = message.replace(/(\d{1,2})[:.]\d{2}|היום|מחר|\b(ב?-?\s?)?(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)(\s?(הבא|הקרוב))?\b|\b(אחת|שתיים|שלוש|ארבע|חמש|שש|שבע|שמונה|תשע|עשר|אחת עשרה|שתים עשרה)\b|בבוקר|בערב|בלילה|בעוד (שעתיים|שעה|חצי שעה|רבע שעה)/g, '').trim();
+                const reminderText = message.replace(/(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?|(\d{1,2})[:.](\d{2})|היום|מחר|\b(ב?-?\s?)?(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)(\s?(הבא|הקרוב))?\b|\b(אחת|שתיים|שלוש|ארבע|חמש|שש|שבע|שמונה|תשע|עשר|אחת עשרה|שתים עשרה)\b|בבוקר|בערב|בלילה|בעוד (שעתיים|שעה|חצי שעה|רבע שעה)/g, '').trim();
                 const reminder = await dbReminders.createReminder(user.dbId || "", reminderText, dueDate);
                 if (reminder) {
                     remindersManager.addReminder(reminder);
@@ -245,8 +275,21 @@ export class MessageHandler {
         // Normalize the input string
         dateTimeStr = dateTimeStr.replace(/\s*-\s*/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
 
-        // Check for "היום" (today) or "מחר" (tomorrow)
-        if (dateTimeStr.includes('היום')) {
+        // Check for fuzzy time first
+        const fuzzyDate = this.parseFuzzyTime(dateTimeStr, now);
+        if (fuzzyDate) {
+            return fuzzyDate;
+        }
+
+        // Check for specific date
+        const dateMatch = dateTimeStr.match(/(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?/);
+        if (dateMatch) {
+            const [, day, month, year] = dateMatch.map(Number);
+            dueDate = new Date(year ? (year < 100 ? 2000 + year : year) : now.getFullYear(), month - 1, day);
+            if (!isValid(dueDate)) {
+                return null;
+            }
+        } else if (dateTimeStr.includes('היום')) {
             // Keep dueDate as is
         } else if (dateTimeStr.includes('מחר')) {
             dueDate = addDays(dueDate, 1);
@@ -263,8 +306,10 @@ export class MessageHandler {
         // Parse time
         dueDate = this.parseTime(dateTimeStr, dueDate);
 
-        // Handle fuzzy time
-        dueDate = this.parseFuzzyTime(dateTimeStr, dueDate);
+        // If no specific time was set and it's not today, default to 8:00 AM
+        if (!dateTimeStr.includes('היום') && isSameDay(dueDate, now) && dueDate.getHours() === now.getHours() && dueDate.getMinutes() === now.getMinutes()) {
+            dueDate = setHours(setMinutes(dueDate, 0), 8);
+        }
 
         // Ensure the due date is in the future
         while (isBefore(dueDate, now)) {
@@ -294,10 +339,10 @@ export class MessageHandler {
             'תשע': 21, 'עשר': 22, 'אחת עשרה': 23, 'שתים עשרה': 12
         };
 
-        let timeMatch = dateTimeStr.match(/(\d{1,2})[:.]?(\d{2})/);
+        let timeMatch = dateTimeStr.match(/(\d{1,2})[:.](\d{2})/);
         if (timeMatch) {
             let [, hours, minutes] = timeMatch.map(Number);
-            dueDate = setHours(setMinutes(dueDate, minutes), hours);
+            return setHours(setMinutes(dueDate, minutes), hours);
         } else {
             for (const [word, hour] of Object.entries(timeWords)) {
                 if (dateTimeStr.includes(word)) {
@@ -307,36 +352,34 @@ export class MessageHandler {
                     } else if (dateTimeStr.includes('בבוקר') && hour > 12) {
                         adjustedHour = hour - 12;
                     }
-                    dueDate = setHours(dueDate, adjustedHour);
-                    dueDate = setMinutes(dueDate, 0);
-                    break;
+                    return setHours(setMinutes(dueDate, 0), adjustedHour);
                 }
             }
         }
 
         // Default times for "בבוקר" and "בערב"
-        if (dateTimeStr.includes('בבוקר') && !timeMatch && !Object.keys(timeWords).some(word => dateTimeStr.includes(word))) {
-            dueDate = setHours(setMinutes(dueDate, 0), 8);
-        } else if (dateTimeStr.includes('בערב') && !timeMatch && !Object.keys(timeWords).some(word => dateTimeStr.includes(word))) {
-            dueDate = setHours(setMinutes(dueDate, 0), 20);
+        if (dateTimeStr.includes('בבוקר')) {
+            return setHours(setMinutes(dueDate, 0), 8);
+        } else if (dateTimeStr.includes('בערב')) {
+            return setHours(setMinutes(dueDate, 0), 20);
         }
 
         return dueDate;
     }
 
-    private parseFuzzyTime(dateTimeStr: string, dueDate: Date): Date {
+    private parseFuzzyTime(dateTimeStr: string, now: Date): Date | null {
         if (dateTimeStr.includes('בעוד שעתיים')) {
-            return addHours(dueDate, 2);
+            return addHours(now, 2);
         } else if (dateTimeStr.includes('בעוד שעה')) {
-            return addHours(dueDate, 1);
+            return addHours(now, 1);
         } else if (dateTimeStr.includes('בעוד חצי שעה')) {
-            return addMinutes(dueDate, 30);
+            return addMinutes(now, 30);
         } else if (dateTimeStr.includes('בעוד רבע שעה')) {
-            return addMinutes(dueDate, 15);
+            return addMinutes(now, 15);
         }
-        // Add more fuzzy time parsing logic here if needed
-        return dueDate;
+        return null;
     }
+
 
     private async handleLink(message: string, user: User): Promise<void> {
         const urlMatch = message.match(/(https?:\/\/\S+)/i);
