@@ -220,6 +220,7 @@ export class MessageHandler {
                 const reminder = await dbReminders.createReminder(user.dbId || "", reminderText, dueDate);
                 if (reminder) {
                     remindersManager.addReminder(reminder);
+                    await client.sendMessage(`התזכורת "${reminderText}" נשמרה בהצלחה ל-${dueDate.toLocaleString('he-IL')}.`, user.phone);
                 } else {
                     throw new Error("נכשל ביצירת תזכורת");
                 }
