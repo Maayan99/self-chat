@@ -10,7 +10,7 @@ import {onboardingRoot} from '../trees/onboarding/root-node';
 import {ConversationHandler} from '../conversation-handler/conversation-handler';
 import {client, admins, messageHandler, remindersManager} from '../main';
 import {Exporter} from './exporter';
-import {notifyAdminsError} from '../utils/admin-notifs-utility';
+import {notifyAdminsError, notifyAdminsUpdate} from '../utils/admin-notifs-utility';
 import {dbReminders} from "../db/db-reminders";
 import {createTables, deleteTables} from "../db/db-initialization";
 import { parse, addDays, setHours, setMinutes, isBefore, isSameDay, addWeeks, addHours, addMinutes, setDay } from 'date-fns';
@@ -140,7 +140,7 @@ export class MessageHandler {
     private async startOnboarding(user: User): Promise<void> {
         try {
             const handler = new ConversationHandler(onboardingRoot, user, client);
-            this.conversationHandlers.push(handler);
+            notifyAdminsUpdate('יצרתי שיחה עם משתמש חדש ' + handler.getConvoPartner() + ". סה״כ שיחות: " + this.conversationHandlers.size);
             await handler.startConversation();
         } catch (error) {
             console.error('שגיאה בתהליך ה-onboarding:', error);
