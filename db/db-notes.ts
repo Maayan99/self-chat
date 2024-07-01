@@ -52,4 +52,8 @@ export class dbNotes {
     static async deleteMonthOldNotes(): Promise<void> {
         await query('DELETE FROM notes WHERE created_at < (NOW() - INTERVAL 30 DAY)')
     }
+
+    static async deleteAllNotesForUser(userId: string): Promise<void> {
+        await query('DELETE FROM notes WHERE user_id = $1', [userId]);
+    }
 }

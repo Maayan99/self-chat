@@ -74,6 +74,9 @@ export class dbReminders {
             notifyAdminsError('נכשלתי בשחזור התזכורות מהdb עם השגיאה: ' + e);
             return [];
         }
+    }
 
+    static async deleteAllRemindersForUser(userId: string): Promise<void> {
+        await query('DELETE FROM reminders WHERE user_id = $1', [userId]);
     }
 }

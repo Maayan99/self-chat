@@ -47,4 +47,24 @@ export class RemindersManager {
             this.reminders.delete(reminderId);
         }
     }
+
+
+    public async removeAllRemindersForUser(userId: string): Promise<void> {
+        const remindersToRemove: string[] = [];
+
+        // Identify reminders to remove
+        for (const [reminderId, timeout] of this.reminders) {
+            const reminder = await dbReminders.getReminder(reminderId);
+            if (reminder && reminder.userId === userId) {
+                remindersToRemove.push(reminderId);
+            }
+        }
+
+        // Remove identified reminders
+        for (const reminderId of remindersToRemove) {
+            this.cancelReminder(reminderId);
+        }
+
+        console.log(`Removed ${remindersToRemove.length} reminders for user ${userId}`);
+    }
 }

@@ -29,30 +29,35 @@ import {
 
 
 const HELP_MESSAGE = `
-היי חבר! 👋 איזה כיף שאתה כאן. בוא אספר לך מה אפשר לעשות:
+היי חבר! 👋 בוא נצלול לכל מה שאפשר לעשות כאן:
 
-📝 להוסיף הערה:
-   פשוט שלח לי טקסט, ואני אשמור אותו בשבילך.
+1. 📝 הערות:
+   כל מה שתשלח שלא נראה כמו פקודה, אני אשמור בתור הערה. פשוט וקל!
 
-🔗 לשמור קישור:
-   שלח לי URL, ואם תרצה - הוסף תיאור לפניו או אחריו.
+2. 🔗 קישורים:
+   שלח לי URL ואשמור אותו. רוצה להוסיף תיאור? כתוב אותו לפני או אחרי הלינק.
 
-⏰ ליצור תזכורת:
-   כתוב הודעה עם תאריך או שעה, למשל:
-   "מחר ב-14:30 פגישה עם יוסי" או "15/07 לקנות מתנה לאמא"
+3. ⏰ תזכורות:
+   כתוב משהו עם תאריך או שעה, ואני אזכיר לך. למשל:
+   "מחר ב-14:30 פגישה עם יוסי"
+   "15/07 לקנות מתנה לאמא"
+   "בעוד שעתיים לצאת מהבית"
 
-📊 לקבל את המידע שלך:
+4. 📊 לקבל את המידע שלך:
    • שלח "הערות" או "לינקים" לקבלת רשימה בהודעה
-   • הוסף "אקסל" או "וורד" בסוף אם תרצה קובץ, למשל: "הערות אקסל"
+   • הוסף "אקסל" או "וורד" לקבלת קובץ, למשל: "הערות אקסל"
 
-🆘 לקבל עזרה:
-   תמיד תוכל לשלוח "עזרה" כדי לראות את ההודעה הזו שוב.
+5. 🗑️ למחוק מידע:
+   • "מחק הערות" - מוחק את כל ההערות שלך
+   • "מחק לינקים" - מוחק את כל הלינקים שלך
+   • "מחק תזכורות" - מוחק את כל התזכורות שלך
+   • "מחק הכל" - מוחק את כל המידע שלך
 
-אני כאן בשבילך! כל הודעה שתשלח תקבל ממני תגובה עם אימוג'י:
-👍 
+שים לב: כל המידע נמחק אוטומטית אחרי 30 יום לשמירה על פרטיותך! 🔒
 
-בוא נתחיל! מה תרצה לעשות קודם? 😊
+צריך עזרה? תמיד אפשר לשלוח "עזרה" ואני כאן! 😊
 `;
+
 
 
 
@@ -243,6 +248,56 @@ export class MessageHandler {
         ];
 
         return reminderPatterns.some(pattern => pattern.test(message.toLowerCase()));
+    }
+
+    private isDeleteCommand(message: string): boolean {
+        return /^מחק (הכל|לינקים|הערות|תזכורות)$/i.test(message);
+    }
+
+    private async handleDeleteCommand(command: string, user: User): Promise<void> {
+        const type = command.split(' ')[1].toLowerCase();
+
+        switch (type) {
+            case 'הכל':
+                await this.deleteAllForUser(user);
+                break;
+            case 'לינקים':
+                await this.deleteAllLinksForUser(user);
+                break;
+            case 'הערות':
+                await this.deleteAllNotesForUser(user);
+                break;
+            case 'תזכורות':
+                await this.deleteAllRemindersForUser(user);
+                break;
+            default:
+                throw new Error('פקודת מחיקה לא חוקית');
+        }
+    }
+
+    private async deleteAllForUser(user: User): Promise<void> {
+        await Promise.all([
+            this.deleteAllLinksForUser(user),
+            this.deleteAllNotesForUser(user),
+            this.deleteAllRemindersForUser(user)
+        ]);
+        await client.sendMessage('כל הלינקים, ההערות והתזכורות נמחקו בהצלחה.', user.phone);
+    }
+
+    private async deleteAllLinksForUser(user: User): Promise<void> {
+        await dbLinks.deleteAllLinksForUser(user.dbId || "");
+        await client.sendMessage('כל הלינקים נמחקו בהצלחה.', user.phone);
+    }
+
+    private async deleteAllNotesForUser(user: User): Promise<void> {
+        await dbNotes.deleteAllNotesForUser(user.dbId || "");
+        await client.sendMessage('כל ההערות נמחקו בהצלחה.', user.phone);
+    }
+
+    private async deleteAllRemindersForUser(user: User): Promise<void> {
+        await dbReminders.deleteAllRemindersForUser(user.dbId || "");
+        await remindersManager.removeAllRemindersForUser(user.dbId || "");
+        await client.sendMessage('כל התזכורות נמחקו בהצלחה.', user.phone);
     }
 
     private async handleReminder(message: string, user: User): Promise<void> {

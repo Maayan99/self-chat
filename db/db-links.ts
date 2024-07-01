@@ -50,4 +50,8 @@ export class dbLinks {
     static async deleteMonthOldLinks(): Promise<void> {
         await query('DELETE FROM links WHERE created_at < (NOW() - INTERVAL 30 DAY)')
     }
+
+    static async deleteAllLinksForUser(userId: string): Promise<void> {
+        await query('DELETE FROM links WHERE user_id = $1', [userId]);
+    }
 }
