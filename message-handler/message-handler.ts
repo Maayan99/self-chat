@@ -24,7 +24,7 @@ import {
     addHours,
     addMinutes,
     setDay,
-    isValid
+    isValid, startOfDay
 } from 'date-fns';
 import { zonedTimeToUtc, utcToZonedTime } from 'date-fns-tz';
 
@@ -322,83 +322,43 @@ export class MessageHandler {
     private parseDueDate(dateTimeStr: string): Date | null {
         const now = new Date();
         let dueDate = utcToZonedTime(now, TIMEZONE);
-        const hebrewDays = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+        let timeSet = false;
 
         dateTimeStr = dateTimeStr.replace(/\s*-\s*/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
 
         // Handle fuzzy time expressions
-        if (dateTimeStr.includes('בעוד')) {
-            const fuzzyMatch = dateTimeStr.match(/בעוד\s+(\d+)?\s*(דקות|שעות?|שעתיים|חצי שעה|רבע שעה)/i);
-            if (fuzzyMatch) {
-                const [, amount, unit] = fuzzyMatch;
-                switch (unit) {
-                    case 'דקות':
-                        dueDate = addMinutes(dueDate, parseInt(amount) || 1);
-                        break;
-                    case 'שעה':
-                    case 'שעות':
-                        dueDate = addHours(dueDate, parseInt(amount) || 1);
-                        break;
-                    case 'שעתיים':
-                        dueDate = addHours(dueDate, 2);
-                        break;
-                    case 'חצי שעה':
-                        dueDate = addMinutes(dueDate, 30);
-                        break;
-                    case 'רבע שעה':
-                        dueDate = addMinutes(dueDate, 15);
-                        break;
-                }
-                return zonedTimeToUtc(dueDate, TIMEZONE);
-            }
+        const fuzzyDate = this.parseFuzzyTime(dateTimeStr, dueDate);
+        if (fuzzyDate) {
+            return zonedTimeToUtc(fuzzyDate, TIMEZONE);
         }
 
-        // Handle specific date and time
-        const dateMatch = dateTimeStr.match(/(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?/);
-        if (dateMatch) {
-            const [, day, month, year] = dateMatch.map(Number);
-            dueDate = new Date(year ? (year < 100 ? 2000 + year : year) : dueDate.getFullYear(), month - 1, day);
-        } else if (dateTimeStr.includes('היום')) {
-            // Keep dueDate as is
+        // Handle "היום" and "מחר"
+        if (dateTimeStr.includes('היום')) {
+            dueDate = startOfDay(dueDate);
         } else if (dateTimeStr.includes('מחר')) {
-            dueDate = addDays(dueDate, 1);
+            dueDate = startOfDay(addDays(dueDate, 1));
         } else {
-            // Check for day of the week
-            for (let i = 0; i < hebrewDays.length; i++) {
-                if (dateTimeStr.includes(hebrewDays[i])) {
-                    dueDate = this.parseContextAwareDay(dateTimeStr, i);
-                    break;
-                }
+            // Handle specific date
+            const dateMatch = dateTimeStr.match(/(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?/);
+            if (dateMatch) {
+                const [, day, month, year] = dateMatch.map(Number);
+                dueDate = utcToZonedTime(new Date(year ? (year < 100 ? 2000 + year : year) : dueDate.getFullYear(), month - 1, day), TIMEZONE);
+                dueDate = startOfDay(dueDate);
+            } else {
+                // Handle day of the week
+                dueDate = this.parseDayOfWeek(dateTimeStr, dueDate);
             }
         }
 
         // Parse time
-        const timeMatch = dateTimeStr.match(/(\d{1,2})[:.](\d{2})/);
-        if (timeMatch) {
-            const [, hours, minutes] = timeMatch.map(Number);
-            dueDate = setHours(setMinutes(dueDate, minutes), hours);
-        } else {
-            const timeWords = {
-                'אחת': 13, 'שתיים': 14, 'שלוש': 15, 'ארבע': 16,
-                'חמש': 17, 'שש': 18, 'שבע': 19, 'שמונה': 20,
-                'תשע': 21, 'עשר': 22, 'אחת עשרה': 23, 'שתים עשרה': 12
-            };
-            for (const [word, hour] of Object.entries(timeWords)) {
-                if (dateTimeStr.includes(word)) {
-                    let adjustedHour = hour;
-                    if (dateTimeStr.includes('בערב') || dateTimeStr.includes('בלילה')) {
-                        adjustedHour = hour < 12 ? hour + 12 : hour;
-                    } else if (dateTimeStr.includes('בבוקר') && hour > 12) {
-                        adjustedHour = hour - 12;
-                    }
-                    dueDate = setHours(setMinutes(dueDate, 0), adjustedHour);
-                    break;
-                }
-            }
+        const timeDate = this.parseTime(dateTimeStr, dueDate);
+        if (timeDate) {
+            dueDate = timeDate;
+            timeSet = true;
         }
 
-        // If no specific time was set and it's not today, default to 8:00 AM
-        if (isSameDay(dueDate, now) && dueDate.getHours() === now.getHours() && dueDate.getMinutes() === now.getMinutes()) {
+        // If no specific time was set, default to 8:00 AM
+        if (!timeSet) {
             dueDate = setHours(setMinutes(dueDate, 0), 8);
         }
 
@@ -423,51 +383,80 @@ export class MessageHandler {
         return dueDate;
     }
 
-    private parseTime(dateTimeStr: string, dueDate: Date): Date {
+    private parseDayOfWeek(dateTimeStr: string, baseDate: Date): Date {
+        const hebrewDays = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+        for (let i = 0; i < hebrewDays.length; i++) {
+            if (dateTimeStr.includes(hebrewDays[i])) {
+                let dueDate = setDay(baseDate, i);
+                if (dateTimeStr.includes('הבא') || dateTimeStr.includes('הקרוב') || isBefore(dueDate, baseDate)) {
+                    dueDate = addWeeks(dueDate, 1);
+                }
+                return startOfDay(dueDate);
+            }
+        }
+        return baseDate;
+    }
+
+
+
+    private parseTime(dateTimeStr: string, baseDate: Date): Date | null {
         const timeWords = {
             'אחת': 13, 'שתיים': 14, 'שלוש': 15, 'ארבע': 16,
             'חמש': 17, 'שש': 18, 'שבע': 19, 'שמונה': 20,
             'תשע': 21, 'עשר': 22, 'אחת עשרה': 23, 'שתים עשרה': 12
         };
 
-        let timeMatch = dateTimeStr.match(/(\d{1,2})[:.](\d{2})/);
-        if (timeMatch) {
-            let [, hours, minutes] = timeMatch.map(Number);
-            return setHours(setMinutes(dueDate, minutes), hours);
-        } else {
-            for (const [word, hour] of Object.entries(timeWords)) {
-                if (dateTimeStr.includes(word)) {
-                    let adjustedHour = hour;
-                    if (dateTimeStr.includes('בערב') || dateTimeStr.includes('בלילה')) {
-                        adjustedHour = hour < 12 ? hour + 12 : hour;
-                    } else if (dateTimeStr.includes('בבוקר') && hour > 12) {
-                        adjustedHour = hour - 12;
-                    }
-                    return setHours(setMinutes(dueDate, 0), adjustedHour);
+        // Check for word-based times first
+        for (const [word, hour] of Object.entries(timeWords)) {
+            if (dateTimeStr.includes(word)) {
+                let adjustedHour = hour;
+                if (dateTimeStr.includes('בערב') || dateTimeStr.includes('בלילה')) {
+                    adjustedHour = hour < 12 ? hour + 12 : hour;
+                } else if (dateTimeStr.includes('בבוקר') && hour > 12) {
+                    adjustedHour = hour - 12;
                 }
+                return setHours(setMinutes(baseDate, 0), adjustedHour);
             }
         }
 
-        // Default times for "בבוקר" and "בערב"
-        if (dateTimeStr.includes('בבוקר')) {
-            return setHours(setMinutes(dueDate, 0), 8);
-        } else if (dateTimeStr.includes('בערב')) {
-            return setHours(setMinutes(dueDate, 0), 20);
+        // Check for specific time format
+        const timeMatch = dateTimeStr.match(/(\d{1,2})[:.](\d{2})/);
+        if (timeMatch) {
+            const [, hours, minutes] = timeMatch.map(Number);
+            return setHours(setMinutes(baseDate, minutes), hours);
         }
 
-        return dueDate;
+        // Handle "בבוקר" and "בערב" without specific time
+        if (dateTimeStr.includes('בבוקר')) {
+            return setHours(setMinutes(baseDate, 0), 8);
+        } else if (dateTimeStr.includes('בערב')) {
+            return setHours(setMinutes(baseDate, 0), 20);
+        }
+
+        return null;
     }
 
-    private parseFuzzyTime(dateTimeStr: string, now: Date): Date | null {
-        if (dateTimeStr.includes('בעוד שעתיים')) {
-            return addHours(now, 2);
-        } else if (dateTimeStr.includes('בעוד שעה')) {
-            return addHours(now, 1);
-        } else if (dateTimeStr.includes('בעוד חצי שעה')) {
-            return addMinutes(now, 30);
-        } else if (dateTimeStr.includes('בעוד רבע שעה')) {
-            return addMinutes(now, 15);
+    private parseFuzzyTime(dateTimeStr: string, baseDate: Date): Date | null {
+        const fuzzyMatches = {
+            'בעוד שעתיים': 2 * 60,
+            'בעוד שעה': 60,
+            'בעוד חצי שעה': 30,
+            'בעוד רבע שעה': 15
+        };
+
+        for (const [phrase, minutes] of Object.entries(fuzzyMatches)) {
+            if (dateTimeStr.includes(phrase)) {
+                return addMinutes(baseDate, minutes);
+            }
         }
+
+        const numericMatch = dateTimeStr.match(/בעוד (\d+) (דקות|שעות)/);
+        if (numericMatch) {
+            const [, amount, unit] = numericMatch;
+            const minutes = unit === 'דקות' ? parseInt(amount) : parseInt(amount) * 60;
+            return addMinutes(baseDate, minutes);
+        }
+
         return null;
     }
 
