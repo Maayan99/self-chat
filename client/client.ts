@@ -288,6 +288,45 @@ export class Client {
         return false
     }
 
+
+    /**
+     * Reacts to a message with an emoji.
+     * @param messageId - The ID of the message to react to.
+     * @param emoji - The emoji to react with.
+     * @param id - The ID of the recipient.
+     * @returns A Promise that resolves with the API response data on success, or false on failure.
+     */
+    async reactToMessage(messageId: string, emoji: string, id: string): Promise<any> {
+        const messageBody = {
+            "messaging_product": "whatsapp",
+            "recipient_type": "individual",
+            "to": id,
+            "type": "reaction",
+            "reaction": {
+                "message_id": messageId,
+                "emoji": emoji
+            }
+        };
+
+        const headers = {
+            'Authorization': `Bearer ${this.accessToken}`,
+            'Content-Type': 'application/json'
+        };
+
+        try {
+            const resp = await axios.post(this.apiUrl, messageBody, { headers: headers });
+            const messages: any = resp?.data?.messages;
+            if (messages) {
+                return messages[0].id;
+            }
+        } catch (e: any) {
+            console.log(e.response.data);
+        }
+
+        // Didn't return id - must have had a problem. Return false
+        return false;
+    }
+
     public async sendExcelFile(caption: string, filename: string, id: string) {
 
         await this.sendMedia(

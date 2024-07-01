@@ -38,6 +38,7 @@ export class MessageHandler {
             if (existingHandler) {
                 if (msgBody == 'בטל') {
                     existingHandler.deleteConvo();
+                    await client.reactToMessage(message.id, '👍', from);
                     return;
                 }
                 await existingHandler.handleTriggerMessage(message);
@@ -155,6 +156,7 @@ export class MessageHandler {
             } else {
                 await this.handleNote(msgBody, user);
             }
+            await client.reactToMessage(message.id, '👍', phone);
         } catch (error) {
             console.error('שגיאה בטיפול בהודעת לקוח:', error);
             await notifyAdminsError(`שגיאה בטיפול בהודעת לקוח ממספר ${phone}: ${error}`);
@@ -276,9 +278,7 @@ export class MessageHandler {
             const extraText = message.replace(url, '').trim();
             try {
                 const link = await dbLinks.createLink(url, user.dbId || "", extraText, new Date());
-                if (link) {
-                    await client.sendMessage("הקישור נשמר בהצלחה.", user.phone);
-                } else {
+                if (!link) {
                     throw new Error("נכשל ביצירת קישור");
                 }
             } catch (error) {
@@ -294,9 +294,7 @@ export class MessageHandler {
     private async handleNote(message: string, user: User): Promise<void> {
         try {
             const note = await dbNotes.createNote(message, user.dbId || "");
-            if (note) {
-                await client.sendMessage("ההערה נשמרה בהצלחה.", user.phone);
-            } else {
+            if (!note) {
                 throw new Error("נכשל ביצירת הערה");
             }
         } catch (error) {
