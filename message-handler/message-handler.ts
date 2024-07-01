@@ -56,7 +56,11 @@ export class MessageHandler {
                 }
                 if (msgBody.startsWith('לקוח ')) {
                     const customerMessage = msgBody.substring(5).trim();
-                    await this.handleCustomerMessage(new IncomingMessage(customerMessage, message.id, from, message.type, message.contextId));
+                    let user = await this.getOrCreateUser(from);
+                    if (!user) {
+                        throw new Error(`נכשל ביצירת משתמש עבור מספר טלפון: ${from}`);
+                    }
+                    await this.handleCustomerMessage(new IncomingMessage(customerMessage, message.id, from, message.type, message.contextId), user);
                 } else {
                     await this.startAdminDashboard(from);
                 }
