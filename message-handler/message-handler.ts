@@ -57,6 +57,9 @@ export class MessageHandler {
                 if (msgBody.startsWith('לקוח ')) {
                     const customerMessage = msgBody.substring(5).trim();
                     let user = await this.getOrCreateUser(from);
+                    if (user === null) {
+                        return;
+                    }
                     if (!user) {
                         throw new Error(`נכשל ביצירת משתמש עבור מספר טלפון: ${from}`);
                     }
@@ -69,6 +72,9 @@ export class MessageHandler {
 
             // Check if user exists in DB, create if not
             let user = await this.getOrCreateUser(from);
+            if (user === null) {
+                return;
+            }
             if (!user) {
                 throw new Error(`נכשל ביצירת משתמש עבור מספר טלפון: ${from}`);
             }
@@ -82,13 +88,14 @@ export class MessageHandler {
         }
     }
 
-    private async getOrCreateUser(phoneNumber: string): Promise<User | undefined> {
+    private async getOrCreateUser(phoneNumber: string): Promise<User | undefined | null> {
         try {
             let user = await dbUsers.getUserByPhone(phoneNumber);
             if (!user) {
                 user = await dbUsers.createUser(phoneNumber);
                 if (user) {
                     await this.startOnboarding(user);
+                    return null;
                 }
             }
             return user || undefined;
