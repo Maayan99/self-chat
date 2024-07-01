@@ -26,7 +26,7 @@ import {
     setDay,
     isValid, startOfDay
 } from 'date-fns';
-import { zonedTimeToUtc, utcToZonedTime } from 'date-fns-tz';
+import { fromZonedTime, toZonedTime } from 'date-fns-tz';
 
 
 const TIMEZONE = 'Asia/Jerusalem'; // Israel Standard Time
@@ -304,7 +304,7 @@ export class MessageHandler {
                 const reminder = await dbReminders.createReminder(user.dbId || "", reminderText, dueDate);
                 if (reminder) {
                     remindersManager.addReminder(reminder);
-                    const zonedDueDate = utcToZonedTime(dueDate, TIMEZONE);
+                    const zonedDueDate = toZonedTime(dueDate, TIMEZONE);
                     await client.sendMessage(`התזכורת "${reminderText}" נשמרה בהצלחה ל-${zonedDueDate.toLocaleString('he-IL')}.`, user.phone);
                 } else {
                     throw new Error("נכשל ביצירת תזכורת");
@@ -321,7 +321,7 @@ export class MessageHandler {
 
     private parseDueDate(dateTimeStr: string): Date | null {
         const now = new Date();
-        let dueDate = utcToZonedTime(now, TIMEZONE);
+        let dueDate = toZonedTime(now, TIMEZONE);
         let timeSet = false;
 
         dateTimeStr = dateTimeStr.replace(/\s*-\s*/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
@@ -329,7 +329,7 @@ export class MessageHandler {
         // Handle fuzzy time expressions
         const fuzzyDate = this.parseFuzzyTime(dateTimeStr, dueDate);
         if (fuzzyDate) {
-            return zonedTimeToUtc(fuzzyDate, TIMEZONE);
+            return fromZonedTime(fuzzyDate, TIMEZONE);
         }
 
         // Handle "היום" and "מחר"
@@ -342,7 +342,7 @@ export class MessageHandler {
             const dateMatch = dateTimeStr.match(/(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?/);
             if (dateMatch) {
                 const [, day, month, year] = dateMatch.map(Number);
-                dueDate = utcToZonedTime(new Date(year ? (year < 100 ? 2000 + year : year) : dueDate.getFullYear(), month - 1, day), TIMEZONE);
+                dueDate = toZonedTime(new Date(year ? (year < 100 ? 2000 + year : year) : dueDate.getFullYear(), month - 1, day), TIMEZONE);
                 dueDate = startOfDay(dueDate);
             } else {
                 // Handle day of the week
@@ -367,11 +367,11 @@ export class MessageHandler {
             dueDate = addDays(dueDate, 1);
         }
 
-        return zonedTimeToUtc(dueDate, TIMEZONE);
+        return fromZonedTime(dueDate, TIMEZONE);
     }
 
     private parseContextAwareDay(dateStr: string, dayIndex: number): Date {
-        const now = utcToZonedTime(new Date(), TIMEZONE);
+        const now = toZonedTime(new Date(), TIMEZONE);
         let dueDate = setDay(now, dayIndex);
         if (dateStr.includes('הבא') || dateStr.includes('הקרוב')) {
             if (isBefore(dueDate, now) || isSameDay(dueDate, now)) {
