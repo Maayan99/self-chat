@@ -1,5 +1,6 @@
 import { Reminder } from '../classes/reminder';
 import { query, dateFromDb } from './db';
+import {notifyAdmins, notifyAdminsError} from "../utils/admin-notifs-utility";
 
 export class dbReminders {
     static reminderObjFromDb(row: { [field: string]: any }): Reminder {
@@ -61,12 +62,18 @@ export class dbReminders {
     }
 
     static async getAllPendingReminders(): Promise<Reminder[]> {
-        const existsResp = await query('SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = $1)', ['reminders'])
-        if (existsResp.rows.length > 0 && existsResp.rows[0]) {
-            const response = await query('SELECT * FROM reminders WHERE is_completed = false AND due_date > NOW() ORDER BY due_date ASC');
-            return response.rows.map((row: any) => this.reminderObjFromDb(row));
-        } else {
+        try {
+            const existsResp = await query('SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = $1)', ['reminders'])
+            if (existsResp.rows.length > 0 && existsResp.rows[0]) {
+                const response = await query('SELECT * FROM reminders WHERE is_completed = false AND due_date > NOW() ORDER BY due_date ASC');
+                return response.rows.map((row: any) => this.reminderObjFromDb(row));
+            } else {
+                return [];
+            }
+        } catch (e) {
+            notifyAdminsError('נכשלתי בשחזור התזכורות מהdb עם השגיאה: ' + e);
             return [];
         }
+
     }
 }
