@@ -153,7 +153,6 @@ export class MessageHandler {
         try {
             const admin = new Admin(from);
             const handler = new ConversationHandler(adminRoot, admin, client);
-            this.conversationHandlers.push(handler);
             await handler.startConversation();
         } catch (error) {
             console.error('שגיאה בהפעלת לוח המחוונים של המנהל:', error);
