@@ -26,6 +26,11 @@ import {
     setDay,
     isValid
 } from 'date-fns';
+import { zonedTimeToUtc, utcToZonedTime } from 'date-fns-tz';
+
+
+const TIMEZONE = 'Asia/Jerusalem'; // Israel Standard Time
+
 
 
 const HELP_MESSAGE = `
@@ -229,27 +234,15 @@ export class MessageHandler {
     }
     private isReminder(message: string): boolean {
         const reminderPatterns = [
-            // Fuzzy time patterns
-            /בעוד (שעתיים|שעה|חצי שעה|רבע שעה)/,
-
-            // Date patterns
-            /\d{1,2}[./]\d{1,2}([./]\d{2,4})?/,
-
-            // Time patterns
-            /\d{1,2}[:.]?\d{2}/,
-
-            // Day words
-            /\b(היום|מחר)\b/,
-            /\b(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)(\s?(הבא|הקרוב))?\b/,
-
-            // Time words
-            /\b(בבוקר|בצהריים|אחה"צ|בערב|בלילה)\b/,
-            /\b(אחת|שתיים|שלוש|ארבע|חמש|שש|שבע|שמונה|תשע|עשר|אחת עשרה|שתים עשרה)\b/
+            /\b(היום|מחר|בעוד|ב|ל)\s*(שעה|שעתיים|דקות?|חצי שעה|רבע שעה|\d+:\d+|\d+[:.]\d+)\b/i,
+            /\b(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)\b/i,
+            /\b\d{1,2}[./]\d{1,2}([./]\d{2,4})?\b/,
+            /\b(בבוקר|בצהריים|אחה"צ|בערב|בלילה)\b/i,
+            /\b(אחת|שתיים|שלוש|ארבע|חמש|שש|שבע|שמונה|תשע|עשר|אחת עשרה|שתים עשרה)\b/i
         ];
 
-        return reminderPatterns.some(pattern => pattern.test(message.toLowerCase()));
+        return reminderPatterns.some(pattern => pattern.test(message));
     }
-
     private isDeleteCommand(message: string): boolean {
         return /^מחק (הכל|לינקים|הערות|תזכורות)$/i.test(message);
     }
@@ -304,11 +297,12 @@ export class MessageHandler {
         try {
             const dueDate = this.parseDueDate(message);
             if (dueDate) {
-                const reminderText = message.replace(/(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?|(\d{1,2})[:.](\d{2})|היום|מחר|\b(ב?-?\s?)?(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)(\s?(הבא|הקרוב))?\b|\b(אחת|שתיים|שלוש|ארבע|חמש|שש|שבע|שמונה|תשע|עשר|אחת עשרה|שתים עשרה)\b|בבוקר|בערב|בלילה|בעוד (שעתיים|שעה|חצי שעה|רבע שעה)/g, '').trim();
+                const reminderText = message.replace(/(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?|(\d{1,2})[:.](\d{2})|היום|מחר|\b(ב?-?\s?)?(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)(\s?(הבא|הקרוב))?\b|\b(אחת|שתיים|שלוש|ארבע|חמש|שש|שבע|שמונה|תשע|עשר|אחת עשרה|שתים עשרה)\b|בבוקר|בצהריים|אחה"צ|בערב|בלילה|בעוד (שעתיים|שעה|חצי שעה|רבע שעה|\d+ דקות)/gi, '').trim();
                 const reminder = await dbReminders.createReminder(user.dbId || "", reminderText, dueDate);
                 if (reminder) {
                     remindersManager.addReminder(reminder);
-                    await client.sendMessage(`התזכורת "${reminderText}" נשמרה בהצלחה ל-${dueDate.toLocaleString('he-IL')}.`, user.phone);
+                    const zonedDueDate = utcToZonedTime(dueDate, TIMEZONE);
+                    await client.sendMessage(`התזכורת "${reminderText}" נשמרה בהצלחה ל-${zonedDueDate.toLocaleString('he-IL')}.`, user.phone);
                 } else {
                     throw new Error("נכשל ביצירת תזכורת");
                 }
@@ -324,32 +318,49 @@ export class MessageHandler {
 
     private parseDueDate(dateTimeStr: string): Date | null {
         const now = new Date();
-        let dueDate = new Date(now);
+        let dueDate = utcToZonedTime(now, TIMEZONE);
         const hebrewDays = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
 
-        // Normalize the input string
         dateTimeStr = dateTimeStr.replace(/\s*-\s*/g, ' ').replace(/\s+/g, ' ').trim().toLowerCase();
 
-        // Check for fuzzy time first
-        const fuzzyDate = this.parseFuzzyTime(dateTimeStr, now);
-        if (fuzzyDate) {
-            return fuzzyDate;
+        // Handle fuzzy time expressions
+        if (dateTimeStr.includes('בעוד')) {
+            const fuzzyMatch = dateTimeStr.match(/בעוד\s+(\d+)?\s*(דקות|שעות?|שעתיים|חצי שעה|רבע שעה)/i);
+            if (fuzzyMatch) {
+                const [, amount, unit] = fuzzyMatch;
+                switch (unit) {
+                    case 'דקות':
+                        dueDate = addMinutes(dueDate, parseInt(amount) || 1);
+                        break;
+                    case 'שעה':
+                    case 'שעות':
+                        dueDate = addHours(dueDate, parseInt(amount) || 1);
+                        break;
+                    case 'שעתיים':
+                        dueDate = addHours(dueDate, 2);
+                        break;
+                    case 'חצי שעה':
+                        dueDate = addMinutes(dueDate, 30);
+                        break;
+                    case 'רבע שעה':
+                        dueDate = addMinutes(dueDate, 15);
+                        break;
+                }
+                return zonedTimeToUtc(dueDate, TIMEZONE);
+            }
         }
 
-        // Check for specific date
+        // Handle specific date and time
         const dateMatch = dateTimeStr.match(/(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?/);
         if (dateMatch) {
             const [, day, month, year] = dateMatch.map(Number);
-            dueDate = new Date(year ? (year < 100 ? 2000 + year : year) : now.getFullYear(), month - 1, day);
-            if (!isValid(dueDate)) {
-                return null;
-            }
+            dueDate = new Date(year ? (year < 100 ? 2000 + year : year) : dueDate.getFullYear(), month - 1, day);
         } else if (dateTimeStr.includes('היום')) {
             // Keep dueDate as is
         } else if (dateTimeStr.includes('מחר')) {
             dueDate = addDays(dueDate, 1);
         } else {
-            // Check for day of the week with context
+            // Check for day of the week
             for (let i = 0; i < hebrewDays.length; i++) {
                 if (dateTimeStr.includes(hebrewDays[i])) {
                     dueDate = this.parseContextAwareDay(dateTimeStr, i);
@@ -359,10 +370,32 @@ export class MessageHandler {
         }
 
         // Parse time
-        dueDate = this.parseTime(dateTimeStr, dueDate);
+        const timeMatch = dateTimeStr.match(/(\d{1,2})[:.](\d{2})/);
+        if (timeMatch) {
+            const [, hours, minutes] = timeMatch.map(Number);
+            dueDate = setHours(setMinutes(dueDate, minutes), hours);
+        } else {
+            const timeWords = {
+                'אחת': 13, 'שתיים': 14, 'שלוש': 15, 'ארבע': 16,
+                'חמש': 17, 'שש': 18, 'שבע': 19, 'שמונה': 20,
+                'תשע': 21, 'עשר': 22, 'אחת עשרה': 23, 'שתים עשרה': 12
+            };
+            for (const [word, hour] of Object.entries(timeWords)) {
+                if (dateTimeStr.includes(word)) {
+                    let adjustedHour = hour;
+                    if (dateTimeStr.includes('בערב') || dateTimeStr.includes('בלילה')) {
+                        adjustedHour = hour < 12 ? hour + 12 : hour;
+                    } else if (dateTimeStr.includes('בבוקר') && hour > 12) {
+                        adjustedHour = hour - 12;
+                    }
+                    dueDate = setHours(setMinutes(dueDate, 0), adjustedHour);
+                    break;
+                }
+            }
+        }
 
         // If no specific time was set and it's not today, default to 8:00 AM
-        if (!dateTimeStr.includes('היום') && isSameDay(dueDate, now) && dueDate.getHours() === now.getHours() && dueDate.getMinutes() === now.getMinutes()) {
+        if (isSameDay(dueDate, now) && dueDate.getHours() === now.getHours() && dueDate.getMinutes() === now.getMinutes()) {
             dueDate = setHours(setMinutes(dueDate, 0), 8);
         }
 
@@ -371,11 +404,11 @@ export class MessageHandler {
             dueDate = addDays(dueDate, 1);
         }
 
-        return dueDate;
+        return zonedTimeToUtc(dueDate, TIMEZONE);
     }
 
     private parseContextAwareDay(dateStr: string, dayIndex: number): Date {
-        const now = new Date();
+        const now = utcToZonedTime(new Date(), TIMEZONE);
         let dueDate = setDay(now, dayIndex);
         if (dateStr.includes('הבא') || dateStr.includes('הקרוב')) {
             if (isBefore(dueDate, now) || isSameDay(dueDate, now)) {
