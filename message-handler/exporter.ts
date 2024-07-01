@@ -23,7 +23,7 @@ const WORD_MEDIA_TYPE = 'application/vnd.openxmlformats-officedocument.wordproce
 const EXCEL_MEDIA_TYPE = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 
 export class Exporter {
-    async export(user: User, exportType: string, format: string): Promise<void> {
+    async export(user: User, exportType: string, format: string = 'הודעה'): Promise<void> {
         try {
             if (exportType === 'לינקים') {
                 return await this.exportLinks(user, format);
@@ -37,12 +37,9 @@ export class Exporter {
             throw error;
         }
     }
-
     private async exportLinks(user: User, format: string): Promise<void> {
         const links = await dbUsers.getAllLinksForUser(user.dbId || "");
         switch (format) {
-            case 'pdf':
-                return await this.exportLinksToPdf(links, user);
             case 'הודעה':
                 return await this.exportLinksToMessage(links, user);
             case 'אקסל':
@@ -57,8 +54,6 @@ export class Exporter {
     private async exportNotes(user: User, format: string): Promise<void> {
         const notes = await dbUsers.getAllNotesForUser(user.dbId || "");
         switch (format) {
-            case 'pdf':
-                return await this.exportNotesToPdf(notes, user);
             case 'הודעה':
                 return await this.exportNotesToMessage(notes, user);
             case 'אקסל':
@@ -70,49 +65,12 @@ export class Exporter {
         }
     }
 
-    private async exportLinksToPdf(links: Link[], user: User): Promise<void> {
-        const filename = `links_${user.phone}_${getISTDate().toISOString()}.pdf`;
-        const filePath = path.join(volumeMountPath, filename);
-
-        const doc = new PDFDocument({
-            size: 'A4',
-            margin: 50,
-            info: {
-                Title: 'הקישורים שלך',
-                Author: 'מערכת קישורים',
-            }
-        });
-
-        const stream = fs.createWriteStream(filePath);
-        doc.pipe(stream);
-
-        // Register a Hebrew font
-        doc.registerFont('Hebrew', Buffer.from(HEBREW_FONT_BASE64, 'base64'));
-
-        doc.font('Hebrew').fontSize(18).text('הקישורים שלך', { align: 'right' });
-        doc.moveDown();
-
-        links.forEach((link, index) => {
-            doc.fontSize(12).text(`${index + 1}. ${link.url}`);
-            if (link.extraText) {
-                doc.fontSize(10).text(`הערה: ${link.extraText}`, { indent: 20 });
-            }
-            doc.moveDown();
-        });
-
-        doc.end();
-
-        await new Promise<void>((resolve) => stream.on('finish', resolve));
-
-        await client.sendMedia('מצורפים הלינקים בקובץ pdf', filename, WA_TYPE, PDF_MEDIA_TYPE, user.phone);
-    }
-
     private async exportLinksToMessage(links: Link[], user: User): Promise<void> {
         let message = 'הקישורים שלך:\n\n';
         links.forEach((link, index) => {
             message += `${index + 1}. ${link.url}\n`;
             if (link.extraText) {
-                message += `   לינק: ${link.extraText}\n`;
+                message += `   הערה: ${link.extraText}\n`;
             }
             message += '\n';
         });
@@ -167,43 +125,6 @@ export class Exporter {
         fs.writeFileSync(filePath, buffer);
 
         await client.sendMedia('מצורפים הלינקים בקובץ וורד', filename, WA_TYPE, WORD_MEDIA_TYPE, user.phone);
-    }
-
-    private async exportNotesToPdf(notes: Note[], user: User): Promise<void> {
-        const filename = `notes_${user.phone}_${getISTDate().toISOString()}.pdf`;
-        const filePath = path.join(volumeMountPath, filename);
-
-        const doc = new PDFDocument({
-            size: 'A4',
-            margin: 50,
-            info: {
-                Title: 'ההערות שלך',
-                Author: 'מערכת הערות',
-            }
-        });
-
-        const stream = fs.createWriteStream(filePath);
-        doc.pipe(stream);
-
-        // Register a Hebrew font
-        doc.registerFont('Hebrew', Buffer.from(HEBREW_FONT_BASE64, 'base64'));
-
-        doc.font('Hebrew').fontSize(18).text('ההערות שלך', { align: 'right' });
-        doc.moveDown();
-
-        notes.forEach((note, index) => {
-            doc.font('Hebrew').fontSize(14).text(`${index + 1}. ${note.noteText}`, { align: 'right' });
-            if (note.tags.length > 0) {
-                doc.font('Hebrew').fontSize(12).text(`תגיות: ${note.tags.join(', ')}`, { align: 'right', indent: 20 });
-            }
-            doc.moveDown();
-        });
-
-        doc.end();
-
-        await new Promise<void>((resolve) => stream.on('finish', resolve));
-
-        await client.sendMedia('מצורפות ההערות בקובץ pdf', filename, WA_TYPE, PDF_MEDIA_TYPE, user.phone);
     }
 
     private async exportNotesToMessage(notes: Note[], user: User): Promise<void> {

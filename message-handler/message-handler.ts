@@ -106,31 +106,6 @@ export class MessageHandler {
         }
     }
 
-    private async handleCustomerMessage(message: IncomingMessage, user: User): Promise<void> {
-        const phone = user ? user.phone : message.from;
-        const msgBody = typeof message.body === 'string' ? message.body.trim() : '';
-
-        try {
-            // Handle export command
-            if (msgBody.startsWith('ייצא ')) {
-                await this.handleExportCommand(msgBody, user);
-                return;
-            }
-
-            if (this.isReminder(msgBody)) {
-                await this.handleReminder(msgBody, user);
-            } else if (this.isLink(msgBody)) {
-                await this.handleLink(msgBody, user);
-            } else {
-                await this.handleNote(msgBody, user);
-            }
-        } catch (error) {
-            console.error('שגיאה בטיפול בהודעת לקוח:', error);
-            await notifyAdminsError(`שגיאה בטיפול בהודעת לקוח ממספר ${phone}: ${error}`);
-            await client.sendMessage("אירעה שגיאה בעיבוד ההודעה שלך, אנא נסה שוב", phone);
-        }
-    }
-
     private async startOnboarding(user: User): Promise<void> {
         try {
             const handler = new ConversationHandler(onboardingRoot, user, client);
@@ -166,25 +141,33 @@ export class MessageHandler {
         await client.sendMessage(helpMessage, from);
     }
 
+    private async handleCustomerMessage(message: IncomingMessage, user: User): Promise<void> {
+        const phone = user ? user.phone : message.from;
+        const msgBody = typeof message.body === 'string' ? message.body.trim() : '';
+
+        try {
+            if (this.isExportCommand(msgBody)) {
+                await this.handleExportCommand(msgBody, user);
+            } else if (this.isReminder(msgBody)) {
+                await this.handleReminder(msgBody, user);
+            } else if (this.isLink(msgBody)) {
+                await this.handleLink(msgBody, user);
+            } else {
+                await this.handleNote(msgBody, user);
+            }
+        } catch (error) {
+            console.error('שגיאה בטיפול בהודעת לקוח:', error);
+            await notifyAdminsError(`שגיאה בטיפול בהודעת לקוח ממספר ${phone}: ${error}`);
+            await client.sendMessage("אירעה שגיאה בעיבוד ההודעה שלך, אנא נסה שוב", phone);
+        }
+    }
+
+    private isExportCommand(message: string): boolean {
+        return /^(הערות|לינקים)(\s+(pdf|הודעה|אקסל|וורד))?$/.test(message);
+    }
+
     private async handleExportCommand(command: string, user: User): Promise<void> {
-        const parts = command.split(' ');
-        if (parts.length < 2) {
-            await client.sendMessage("פקודת ייצוא לא חוקית. השתמש ב: ייצא [לינקים/הערות] [pdf/הודעה/אקסל/וורד]", user.phone);
-            return;
-        }
-
-        const exportType = parts[1];
-        const format = parts[2] || 'pdf';
-
-        if (exportType !== 'לינקים' && exportType !== 'הערות') {
-            await client.sendMessage("סוג ייצוא לא חוקי. השתמש ב'לינקים' או 'הערות'.", user.phone);
-            return;
-        }
-
-        if (!['pdf', 'הודעה', 'אקסל', 'וורד'].includes(format)) {
-            await client.sendMessage("פורמט ייצוא לא חוקי. השתמש ב'pdf', 'הודעה', 'אקסל', או 'וורד'.", user.phone);
-            return;
-        }
+        const [exportType, format = 'הודעה'] = command.split(/\s+/);
 
         try {
             await this.exporter.export(user, exportType, format);
