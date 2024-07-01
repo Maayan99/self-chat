@@ -192,7 +192,10 @@ export class MessageHandler {
         const msgBody = typeof message.body === 'string' ? message.body.trim() : '';
 
         try {
-            if (this.isExportCommand(msgBody)) {
+            if (this.isDeleteCommand(msgBody)) {
+                await this.handleDeleteCommand(msgBody, user);
+                await client.reactToMessage(message.id, '🗑️', phone);
+            } else if (this.isExportCommand(msgBody)) {
                 await this.handleExportCommand(msgBody, user);
                 await client.reactToMessage(message.id, '📁', phone);
             } else if (this.isReminder(msgBody)) {
