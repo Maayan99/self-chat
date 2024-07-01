@@ -172,14 +172,17 @@ export class MessageHandler {
         try {
             if (this.isExportCommand(msgBody)) {
                 await this.handleExportCommand(msgBody, user);
+                await client.reactToMessage(message.id, '📁', phone);
             } else if (this.isReminder(msgBody)) {
                 await this.handleReminder(msgBody, user);
+                await client.reactToMessage(message.id, '📅', phone);
             } else if (this.isLink(msgBody)) {
                 await this.handleLink(msgBody, user);
+                await client.reactToMessage(message.id, '🔗', phone);
             } else {
                 await this.handleNote(msgBody, user);
+                await client.reactToMessage(message.id, '✍️', phone);
             }
-            await client.reactToMessage(message.id, '👍', phone);
         } catch (error) {
             console.error('שגיאה בטיפול בהודעת לקוח:', error);
             await notifyAdminsError(`שגיאה בטיפול בהודעת לקוח ממספר ${phone}: ${error}`);
