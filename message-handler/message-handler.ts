@@ -57,12 +57,6 @@ export class MessageHandler {
                 return;
             }
 
-            // Handle help message
-            if (msgBody === 'עזרה') {
-                await this.sendHelpMessage(from);
-                return;
-            }
-
             // Check if user exists in DB, create if not
             let user = await this.getOrCreateUser(from);
             if (!user) {
@@ -95,16 +89,15 @@ export class MessageHandler {
         }
     }
 
-    private async handleCustomerMessage(message: IncomingMessage, user?: User): Promise<void> {
+    private async handleCustomerMessage(message: IncomingMessage, user: User): Promise<void> {
         const phone = user ? user.phone : message.from;
         const msgBody = typeof message.body === 'string' ? message.body.trim() : '';
 
         try {
-            if (!user) {
-                user = await this.getOrCreateUser(phone);
-                if (!user) {
-                    throw new Error("לא ניתן ליצור או לאחזר משתמש");
-                }
+            // Handle help message
+            if (msgBody === 'עזרה') {
+                await this.sendHelpMessage(user.phone);
+                return;
             }
 
             // Handle export command
