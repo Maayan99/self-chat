@@ -14,6 +14,35 @@ import {notifyAdminsError} from '../utils/admin-notifs-utility';
 import {dbReminders} from "../db/db-reminders";
 import {createTables, deleteTables} from "../db/db-initialization";
 
+
+const HELP_MESSAGE = `
+היי חבר! 👋 איזה כיף שאתה כאן. בוא אספר לך מה אפשר לעשות:
+
+📝 להוסיף הערה:
+   פשוט שלח לי טקסט, ואני אשמור אותו בשבילך.
+
+🔗 לשמור קישור:
+   שלח לי URL, ואם תרצה - הוסף תיאור לפניו או אחריו.
+
+⏰ ליצור תזכורת:
+   כתוב הודעה עם תאריך או שעה, למשל:
+   "מחר ב-14:30 פגישה עם יוסי" או "15/07 לקנות מתנה לאמא"
+
+📊 לקבל את המידע שלך:
+   • שלח "הערות" או "לינקים" לקבלת רשימה בהודעה
+   • הוסף "אקסל" או "וורד" בסוף אם תרצה קובץ, למשל: "הערות אקסל"
+
+🆘 לקבל עזרה:
+   תמיד תוכל לשלוח "עזרה" כדי לראות את ההודעה הזו שוב.
+
+אני כאן בשבילך! כל הודעה שתשלח תקבל ממני תגובה עם אימוג'י:
+👍 
+
+בוא נתחיל! מה תרצה לעשות קודם? 😊
+`;
+
+
+
 export class MessageHandler {
     private conversationHandlers: ConversationHandler[] = [];
     private exporter: Exporter;
@@ -133,13 +162,7 @@ export class MessageHandler {
     }
 
     private async sendHelpMessage(from: string): Promise<void> {
-        const helpMessage = `
-        ברוכים הבאים לשירות שלנו! הנה הפקודות הזמינות:
-        - עזרה: הצג הודעת עזרה זו
-        - ייצא [לינקים/הערות] [pdf/הודעה/אקסל/וורד]: ייצא את הנתונים שלך
-        - [ההודעה שלך]: הוסף הערה או קישור חדש
-        `;
-        await client.sendMessage(helpMessage, from);
+        await client.sendMessage(HELP_MESSAGE, from);
     }
 
     private async handleCustomerMessage(message: IncomingMessage, user: User): Promise<void> {
