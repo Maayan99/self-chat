@@ -27,6 +27,12 @@ export class MessageHandler {
         const msgBody = typeof message.body === 'string' ? message.body.trim() : '';
 
         try {
+            // Handle help message
+            if (msgBody === 'עזרה') {
+                await this.sendHelpMessage(from);
+                return;
+            }
+
             // Check for existing conversation handler
             const existingHandler = this.findConversationHandler(from);
             if (existingHandler) {
@@ -94,12 +100,6 @@ export class MessageHandler {
         const msgBody = typeof message.body === 'string' ? message.body.trim() : '';
 
         try {
-            // Handle help message
-            if (msgBody === 'עזרה') {
-                await this.sendHelpMessage(user.phone);
-                return;
-            }
-
             // Handle export command
             if (msgBody.startsWith('ייצא ')) {
                 await this.handleExportCommand(msgBody, user);
