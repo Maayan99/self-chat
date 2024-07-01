@@ -195,40 +195,40 @@ export class MessageHandler {
         }
     }
 
-    private isReminder(message: string): boolean {
-        const reminderPattern = /^(\d{1,2}[/.]\d{1,2}([/.]\d{2,4})?|\d{1,2}:\d{2}|ב(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת))(.+)/;
-        return reminderPattern.test(message);
-    }
-
-
     private isLink(message: string): boolean {
         const urlPattern = /https?:\/\/\S+/i;
         return urlPattern.test(message);
     }
+    private isReminder(message: string): boolean {
+        const reminderPattern = /(היום|מחר|ביום (ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|\d{1,2}[/.]\d{1,2}([/.]\d{2,4})?|\d{1,2}:\d{2})/i;
+        return reminderPattern.test(message);
+    }
 
     private async handleReminder(message: string, user: User): Promise<void> {
         try {
-            const reminderPattern = /^((\d{1,2}[/.]\d{1,2}([/.]\d{2,4})?)|(\d{1,2}:\d{2})|(ב(ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת))(\s\d{1,2}:\d{2})?)(.+)/;
+            const reminderPattern = /(היום|מחר|ביום (ראשון|שני|שלישי|רביעי|חמישי|שישי|שבת)|\d{1,2}[/.]\d{1,2}([/.]\d{2,4})?|\d{1,2}:\d{2})(\s+ב?\d{1,2}:\d{2})?/i;
             const match = message.match(reminderPattern);
 
             if (match) {
                 const dateTimeStr = match[1];
-                const reminderText = match[8].trim();
-                const dueDate = this.parseDueDate(dateTimeStr);
+                const timeStr = match[4] ? match[4].trim().replace(/^ב/, '') : '';
+                const dateTimeIndex = match.index || 0;
+                const reminderText = message.slice(0, dateTimeIndex).trim() || message.slice(dateTimeIndex + match[0].length).trim();
+                const dueDate = this.parseDueDate(dateTimeStr, timeStr);
 
                 if (dueDate) {
                     const reminder = await dbReminders.createReminder(user.dbId || "", reminderText, dueDate);
                     if (reminder) {
                         remindersManager.addReminder(reminder);
-                        await client.sendMessage(`התזכורת נשמרה בהצלחה ל-${dueDate.toLocaleString('he-IL')}.`, user.phone);
+                        await client.sendMessage(`התזכורת "${reminderText}" נשמרה בהצלחה ל-${dueDate.toLocaleString('he-IL')}.`, user.phone);
                     } else {
                         throw new Error("נכשל ביצירת תזכורת");
                     }
                 } else {
-                    await client.sendMessage("לא הצלחתי להבין את התאריך או השעה. אנא נסה שוב בפורמט dd/mm, dd/mm/yy, hh:mm, או 'בשם יום'.", user.phone);
+                    await client.sendMessage("לא הצלחתי להבין את התאריך או השעה. אנא נסה שוב בפורמט: [תוכן] היום/מחר/ביום [יום בשבוע]/DD.MM/DD.MM.YY [HH:MM] או היום/מחר/ביום [יום בשבוע]/DD.MM/DD.MM.YY [HH:MM] [תוכן]", user.phone);
                 }
             } else {
-                await client.sendMessage("פורמט התזכורת לא תקין. אנא השתמש בפורמט: dd/mm תוכן התזכורת, dd/mm/yy תוכן התזכורת, hh:mm תוכן התזכורת, או 'בשם יום' תוכן התזכורת.", user.phone);
+                await client.sendMessage("פורמט התזכורת לא תקין. אנא השתמש בפורמט: [תוכן] היום/מחר/ביום [יום בשבוע]/DD.MM/DD.MM.YY [HH:MM] או היום/מחר/ביום [יום בשבוע]/DD.MM/DD.MM.YY [HH:MM] [תוכן]", user.phone);
             }
         } catch (error) {
             console.error('שגיאה בשמירת תזכורת:', error);
@@ -237,56 +237,52 @@ export class MessageHandler {
         }
     }
 
-    private parseDueDate(dateTimeStr: string): Date | null {
+    private parseDueDate(dateTimeStr: string, timeStr: string): Date | null {
         const now = new Date();
         const hebrewDays = ['ראשון', 'שני', 'שלישי', 'רביעי', 'חמישי', 'שישי', 'שבת'];
+        let dueDate = new Date(now);
 
-        if (dateTimeStr.includes(':')) {
-            // It's a time
-            const [hours, minutes] = dateTimeStr.split(':').map(Number);
-            const dueDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
-            if (dueDate < now) {
-                dueDate.setDate(dueDate.getDate() + 1); // Set to tomorrow if the time has already passed today
-            }
-            return dueDate;
-        } else if (dateTimeStr.startsWith('ב')) {
-            // It's a day of the week
-            const dayName = dateTimeStr.substring(1).split(' ')[0];
+        if (dateTimeStr.toLowerCase() === 'היום') {
+            // Do nothing, dueDate is already set to today
+        } else if (dateTimeStr.toLowerCase() === 'מחר') {
+            dueDate.setDate(dueDate.getDate() + 1);
+        } else if (dateTimeStr.startsWith('ביום')) {
+            const dayName = dateTimeStr.split(' ')[1];
             const dayIndex = hebrewDays.indexOf(dayName);
             if (dayIndex !== -1) {
-                const dueDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 8, 0); // Set to 8:00 AM
                 const daysUntilDue = (dayIndex + 7 - now.getDay()) % 7;
                 dueDate.setDate(dueDate.getDate() + daysUntilDue);
-
-                // Check if time is specified
-                const timeMatch = dateTimeStr.match(/\d{1,2}:\d{2}/);
-                if (timeMatch) {
-                    const [hours, minutes] = timeMatch[0].split(':').map(Number);
-                    dueDate.setHours(hours, minutes);
-                }
-
-                return dueDate;
+            } else {
+                return null;
+            }
+        } else if (dateTimeStr.includes(':')) {
+            // It's a time
+            const [hours, minutes] = dateTimeStr.split(':').map(Number);
+            dueDate.setHours(hours, minutes, 0, 0);
+            if (dueDate < now) {
+                dueDate.setDate(dueDate.getDate() + 1); // Set to tomorrow if the time has already passed today
             }
         } else {
             // It's a date
             const [day, month, year] = dateTimeStr.split(/[/.]/).map(Number);
-            const dueDate = new Date(year ? 2000 + year : now.getFullYear(), month - 1, day, 8, 0); // Set to 8:00 AM
+            dueDate = new Date(year ? (year < 100 ? 2000 + year : year) : now.getFullYear(), month - 1, day);
 
             // Handle year rollover
-            if (dueDate < now) {
-                if (!year) {
-                    // If year wasn't specified, and the date is in the past, set it to next year
-                    dueDate.setFullYear(dueDate.getFullYear() + 1);
-                } else {
-                    // If year was specified and it's still in the past, it's invalid
-                    return null;
-                }
+            if (dueDate < now && !year) {
+                dueDate.setFullYear(dueDate.getFullYear() + 1);
             }
-
-            return dueDate;
         }
 
-        return null;
+        // Set time if provided separately
+        if (timeStr) {
+            const [hours, minutes] = timeStr.split(':').map(Number);
+            dueDate.setHours(hours, minutes, 0, 0);
+        } else if (!dateTimeStr.includes(':')) {
+            // If no specific time was set, default to 8:00 AM
+            dueDate.setHours(8, 0, 0, 0);
+        }
+
+        return dueDate > now ? dueDate : null;
     }
 
 
