@@ -3,38 +3,35 @@ import { VarRead, VarAppend } from '../../conversation-handler/classes/convo-var
 import { IncomingMessage } from '../../client/classes/incoming-message';
 
 const briefExplanation = `
-ברוך הבא לשירות שלנו! הנה כמה דברים שתוכל לעשות:
+היי! איזה כיף שהצטרפת אלינו 🎉 הנה מה שאפשר לעשות כאן:
 
-1. שמור הערות: פשוט שלח הודעת טקסט כלשהי.
-2. שמור קישורים: שלח קישור עם או בלי תיאור.
-3. צור תזכורות: התחל הודעה עם תאריך או שעה.
+1. לשמור הערות: פשוט שלח לי טקסט כלשהו.
+2. לשמור קישורים: שלח לינק, אפשר גם להוסיף תיאור.
+3. ליצור תזכורות: כתוב הודעה עם תאריך או שעה.
+4. לקבל את המידע שלך: שלח "הערות" או "לינקים".
 
-זכור, תוכל תמיד לשלוח "עזרה" לקבלת מידע נוסף!
+רוצה עוד טיפים? פשוט שלח "עזרה" 😊
 `;
 
 const detailedExplanation = `
-הנה הסבר מפורט יותר על השימוש במערכת:
+היי חבר, בוא נדבר על כל מה שאפשר לעשות פה:
 
-1. שמירת הערות:
-   - כל הודעת טקסט שתשלח תישמר כהערה.
-   - תוכל לייצא את ההערות שלך בכל עת.
+1. הערות:
+   כל מה שתשלח שלא נראה כמו פקודה, אני אשמור בתור הערה. קל, נכון?
 
-2. שמירת קישורים:
-   - שלח קישור (URL) כדי לשמור אותו.
-   - תוכל להוסיף תיאור לקישור על ידי הוספת טקסט לפני או אחרי הקישור.
+2. קישורים:
+   שלח לי לינק ואשמור אותו. רוצה להוסיף תיאור? פשוט כתוב אותו ליד הלינק.
 
-3. יצירת תזכורות:
-   - התחל הודעה עם תאריך (לדוגמה: 15/07/23) או שעה (לדוגמה: 14:30).
-   - ההודעה שתבוא אחרי התאריך או השעה תהיה תוכן התזכורת.
+3. תזכורות:
+   כתוב משהו עם תאריך או שעה, ואני אזכור בשבילך. למשל:
+   "מחר ב-14:30 פגישה עם יוסי"
+   "15/07 לקנות מתנה לאמא"
 
-4. ייצוא מידע:
-   - שלח "ייצא הערות" או "ייצא קישורים" כדי לקבל את המידע שלך.
-   - תוכל לבחור את הפורמט: pdf, הודעה, אקסל, או וורד.
+4. לקבל את המידע שלך:
+   רוצה לראות את ההערות או הלינקים שלך? פשוט שלח "הערות" או "לינקים".
+   רוצה את זה באקסל או בוורד? הוסף את זה לבקשה, כמו "הערות אקסל".
 
-5. קבלת עזרה:
-   - בכל שלב, תוכל לשלוח "עזרה" כדי לקבל את ההסבר הזה שוב.
-
-אנחנו מקווים שתמצא את השירות שלנו שימושי!
+זהו! אם תצטרך עזרה, אני תמיד פה. פשוט שלח "עזרה" 😊
 `;
 
 export const onboardingRoot: ConvoNode = new ConvoNode(
@@ -50,20 +47,14 @@ export const onboardingRoot: ConvoNode = new ConvoNode(
         more_info: new ConvoNode(
             'open',
             { body: detailedExplanation },
-            {
-                answer: async (message: IncomingMessage | undefined, read: VarRead, append: VarAppend) => {
-                    return new ConvoNode(
-                        'open',
-                        { body: 'מעולה! עכשיו אתה מוכן להשתמש במערכת. זכור, תוכל תמיד לשלוח "עזרה" אם תצטרך תזכורת. בהצלחה!' },
-                        { answer: null }
-                    );
-                }
-            }
+            { answer: null },
+            true
         ),
         start_using: new ConvoNode(
             'open',
             { body: 'מצוין! אתה מוכן להשתמש במערכת. זכור, תוכל תמיד לשלוח "עזרה" אם תצטרך מידע נוסף. בהצלחה!' },
-            { answer: null }
+            { answer: null },
+            true
         ),
     }
 );
