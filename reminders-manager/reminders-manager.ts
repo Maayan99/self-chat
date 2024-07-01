@@ -3,8 +3,6 @@ import { client } from '../main';
 import {Reminder} from "../classes/reminder";
 import {dbUsers} from "../db/db-users";
 
-const HOUR_IN_MILLIS = 60 * 60 * 1000;
-
 export class RemindersManager {
     private reminders: Map<string, NodeJS.Timeout> = new Map();
 
@@ -21,7 +19,7 @@ export class RemindersManager {
 
     public scheduleReminder(reminder: Reminder) {
         const now = new Date();
-        const timeUntilDue = reminder.dueDate.getTime() - now.getTime() - HOUR_IN_MILLIS;
+        const timeUntilDue = reminder.dueDate.getTime() - now.getTime();
 
         if (timeUntilDue > 0) {
             const timeout = setTimeout(() => this.sendReminder(reminder), timeUntilDue);
